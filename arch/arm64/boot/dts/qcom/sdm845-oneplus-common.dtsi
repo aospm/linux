@@ -23,6 +23,59 @@
 		hsuart0 = &uart6;
 	};
 
+	// chosen {
+	// 	#address-cells = <2>;
+	// 	#size-cells = <2>;
+	// 	ranges;
+
+	// 	// For UART
+	// 	//stdout-path = "serial0:115200n8";
+	// 	// For simplefb hack
+	// 	stdout-path = "display0";
+
+	// 	/*
+	// 	 * hack: Use framebuffer setup by the bootloader for simplefb.
+	// 	 * the address is taken from the bootloader config (strings xbl.img | grep "Display Reserved")
+	// 	 */
+	// 	framebuffer0: framebuffer@9d400000 {
+	// 		compatible = "simple-framebuffer";
+	// 		reg = <0 0x9d400000 0 (1080 * 2160 * 4)>;
+	// 		width = <1080>;
+	// 		height = <2160>;
+	// 		stride = <(1080 * 4)>;
+	// 		format = "a8r8g8b8";
+	// 	};
+	// };
+
+	// firmware {
+	// 	android {
+	// 		compatible = "android,firmware";
+	// 		fstab {
+	// 			compatible = "android,fstab";
+	// 			vendor {
+	// 				compatible = "android,vendor";
+	// 				dev = "/dev/block/platform/soc@0/1d84000.ufshc/by-name/vendor_b";
+	// 				type = "ext4";
+	// 				mnt_flags = "ro,barrier=1,discard";
+	// 				fsmgr_flags = "wait";
+	// 				status = "ok";
+	// 			};
+	// 			system {
+	// 				compatible = "android,system";
+	// 				dev = "/dev/block/platform/soc@0/1d84000.ufshc/by-name/system_b";
+	// 				type = "ext4";
+	// 				mnt_flags = "ro,barrier=1,discard";
+	// 				fsmgr_flags = "wait";
+	// 				status = "ok";
+	// 			};
+	// 		};
+	// 	};
+
+	// 	scm {
+	// 		compatible = "qcom,scm-sdm845", "qcom,scm";
+	// 	};
+	// };
+
 	gpio-keys {
 		compatible = "gpio-keys";
 		label = "Volume keys";
