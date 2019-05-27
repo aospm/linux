@@ -1306,7 +1306,7 @@ static struct clk_branch gcc_disp_ahb_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "gcc_disp_ahb_clk",
-			.flags = CLK_IS_CRITICAL,
+			.flags = CLK_IS_CRITICAL | CLK_INHERIT_BOOTLOADER,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -1320,6 +1320,7 @@ static struct clk_branch gcc_disp_axi_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "gcc_disp_axi_clk",
+			.flags = CLK_INHERIT_BOOTLOADER,
 			.ops = &clk_branch2_ops,
 		},
 	},
