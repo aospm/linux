@@ -383,6 +383,11 @@ static int gdsc_init(struct gdsc *sc)
 				return ret;
 		}
 
+		if (sc->flags & INHERIT_BL) {
+			pr_info("gdsc: %s is enabled from bootloader!\n", sc->pd.name);
+			sc->pd.flags |= GENPD_FLAG_INHERIT_BL;
+		}
+
 		/*
 		 * Make sure the retain bit is set if the GDSC is already on,
 		 * otherwise we end up turning off the GDSC and destroying all
@@ -393,7 +398,6 @@ static int gdsc_init(struct gdsc *sc)
 	} else if (sc->flags & ALWAYS_ON) {
 		/* If ALWAYS_ON GDSCs are not ON, turn them ON */
 		gdsc_enable(&sc->pd);
-		on = true;
 	}
 
 	if (on || (sc->pwrsts & PWRSTS_RET))
