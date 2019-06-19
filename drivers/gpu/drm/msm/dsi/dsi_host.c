@@ -217,12 +217,10 @@ static const struct msm_dsi_cfg_handler *dsi_get_config(
 		goto exit;
 	}
 
-	pm_runtime_get_sync(dev);
-
 	ret = clk_prepare_enable(ahb_clk);
 	if (ret) {
 		pr_err("%s: unable to enable ahb_clk\n", __func__);
-		goto runtime_put;
+		goto exit;
 	}
 
 	ret = dsi_get_version(msm_host->ctrl_base, &major, &minor);
@@ -237,8 +235,6 @@ static const struct msm_dsi_cfg_handler *dsi_get_config(
 
 disable_clks:
 	clk_disable_unprepare(ahb_clk);
-runtime_put:
-	pm_runtime_put_sync(dev);
 exit:
 	return cfg_hnd;
 }
@@ -383,6 +379,8 @@ static int dsi_clk_init(struct msm_dsi_host *msm_host)
 				__func__, cfg->bus_clk_names[i], ret);
 			goto exit;
 		}
+
+		clk_prepare_enable(msm_host->bus_clks[i]);
 	}
 
 	/* get link and source clocks */
@@ -429,6 +427,7 @@ static int dsi_clk_init(struct msm_dsi_host *msm_host)
 
 	if (cfg_hnd->ops->clk_init_ver)
 		ret = cfg_hnd->ops->clk_init_ver(msm_host);
+
 exit:
 	return ret;
 }
@@ -1828,6 +1827,31 @@ static int dsi_host_get_id(struct msm_dsi_host *msm_host)
 	return -EINVAL;
 }
 
+void msm_dsi_host_post_init(struct msm_dsi *msm_dsi)
+{
+	struct msm_dsi_host *msm_host = to_msm_dsi_host(msm_dsi->host);
+	const struct msm_dsi_cfg_handler *cfg_hnd = msm_host->cfg_hnd;
+	struct platform_device *pdev = msm_dsi->pdev;
+	int ret;
+
+	if (!msm_dsi->enabled_at_boot)
+		return;
+
+	pm_runtime_enable(&pdev->dev);
+	pm_runtime_get_sync(&pdev->dev);
+
+	/*
+	 * Do an extra enable/disable sequence initially to
+	 * ensure the clocks are actually off, if left enabled
+	 * by the bootloader..
+	 */
+	ret = cfg_hnd->ops->link_clk_enable(msm_host);
+	if (!ret)
+		cfg_hnd->ops->link_clk_disable(msm_host);
+
+	pm_runtime_put_sync(&pdev->dev);
+}
+
 int msm_dsi_host_init(struct msm_dsi *msm_dsi)
 {
 	struct msm_dsi_host *msm_host = NULL;
@@ -1856,7 +1880,15 @@ int msm_dsi_host_init(struct msm_dsi *msm_dsi)
 		goto fail;
 	}
 
-	pm_runtime_enable(&pdev->dev);
+	/*
+	 * If enabled at boot, defer enabling runpm until after we know
+	 * we will no longer -EPROBE_DEFER, to avoid disabling the running
+	 * clocks.
+	 */
+	if (!msm_dsi->enabled_at_boot)
+		pm_runtime_enable(&pdev->dev);
+
+	pm_runtime_get_sync(&pdev->dev);
 
 	msm_host->cfg_hnd = dsi_get_config(msm_host);
 	if (!msm_host->cfg_hnd) {
@@ -1886,6 +1918,8 @@ int msm_dsi_host_init(struct msm_dsi *msm_dsi)
 		pr_err("%s: unable to initialize dsi clks\n", __func__);
 		goto fail;
 	}
+
+	pm_runtime_put_sync(&pdev->dev);
 
 	msm_host->rx_buf = devm_kzalloc(&pdev->dev, SZ_4K, GFP_KERNEL);
 	if (!msm_host->rx_buf) {
