@@ -275,6 +275,9 @@ void bio_init(struct bio *bio, struct bio_vec *table,
 #ifdef CONFIG_BLK_INLINE_ENCRYPTION
 	bio->bi_crypt_context = NULL;
 #endif
+#if IS_ENABLED(CONFIG_DM_DEFAULT_KEY)
+	bio->bi_skip_dm_default_key = 0;
+#endif
 #ifdef CONFIG_BLK_DEV_INTEGRITY
 	bio->bi_integrity = NULL;
 #endif
