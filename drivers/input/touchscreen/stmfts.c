@@ -538,18 +538,18 @@ static int stmfts_power_on(struct stmfts_data *sdata)
 	 */
 	msleep(20);
 
-	err = i2c_smbus_read_i2c_block_data(sdata->client, STMFTS_READ_INFO,
-					    sizeof(reg), reg);
-	if (err < 0)
-		return err;
-	if (err != sizeof(reg))
-		return -EIO;
+	// err = i2c_smbus_read_i2c_block_data(sdata->client, STMFTS_READ_INFO,
+	// 				    sizeof(reg), reg);
+	// if (err < 0)
+	// 	return err;
+	// if (err != sizeof(reg))
+	// 	return -EIO;
 
-	sdata->chip_id = be16_to_cpup((__be16 *)&reg[6]);
-	sdata->chip_ver = reg[0];
-	sdata->fw_ver = be16_to_cpup((__be16 *)&reg[2]);
-	sdata->config_id = reg[4];
-	sdata->config_ver = reg[5];
+	// sdata->chip_id = be16_to_cpup((__be16 *)&reg[6]);
+	// sdata->chip_ver = reg[0];
+	// sdata->fw_ver = be16_to_cpup((__be16 *)&reg[2]);
+	// sdata->config_id = reg[4];
+	// sdata->config_ver = reg[5];
 
 	enable_irq(sdata->client->irq);
 
@@ -632,12 +632,16 @@ static int stmfts_probe(struct i2c_client *client,
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C |
 						I2C_FUNC_SMBUS_BYTE_DATA |
-						I2C_FUNC_SMBUS_I2C_BLOCK))
+						I2C_FUNC_SMBUS_I2C_BLOCK)) {
+		dev_err(&client->dev, "Failed to probe: %d\n", -ENODEV);
 		return -ENODEV;
+	}
 
 	sdata = devm_kzalloc(&client->dev, sizeof(*sdata), GFP_KERNEL);
-	if (!sdata)
+	if (!sdata) {
+		dev_err(&client->dev, "Failed to probe: %d\n", -ENOMEM);
 		return -ENOMEM;
+	}
 
 	i2c_set_clientdata(client, sdata);
 
@@ -650,12 +654,17 @@ static int stmfts_probe(struct i2c_client *client,
 	err = devm_regulator_bulk_get(&client->dev,
 				      ARRAY_SIZE(sdata->regulators),
 				      sdata->regulators);
-	if (err)
+	if (err) {
+		dev_err(&client->dev, "Failed to devm_regulator_bulk_get: %d\n", err);
 		return err;
+	}
 
 	sdata->input = devm_input_allocate_device(&client->dev);
-	if (!sdata->input)
-		return -ENOMEM;
+	if (!sdata->input) {
+		dev_err(&client->dev, "Failed to devm_input_allocate_device: %d\n", -ENOMEM);
+		err = -ENOMEM;
+		goto err_regulator_put;
+	}
 
 	sdata->input->name = STMFTS_DEV_NAME;
 	sdata->input->id.bustype = BUS_I2C;
@@ -681,8 +690,10 @@ static int stmfts_probe(struct i2c_client *client,
 
 	err = input_mt_init_slots(sdata->input,
 				  STMFTS_MAX_FINGERS, INPUT_MT_DIRECT);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to input_mt_init_slots: %d\n", err);
+		goto err_regulator_put;
+	}
 
 	input_set_drvdata(sdata->input, sdata);
 
@@ -697,22 +708,30 @@ static int stmfts_probe(struct i2c_client *client,
 					NULL, stmfts_irq_handler,
 					IRQF_ONESHOT | IRQF_NO_AUTOEN,
 					"stmfts_irq", sdata);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to devm_request_threaded_irq: %d\n", err);
+		goto err_regulator_put;
+	}
 
-	dev_dbg(&client->dev, "initializing ST-Microelectronics FTS...\n");
+	dev_info(&client->dev, "initializing ST-Microelectronics FTS...\n");
 
 	err = stmfts_power_on(sdata);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to stmfts_power_on: %d\n", err);
+		goto err_regulator_put;
+	}
 
 	err = devm_add_action_or_reset(&client->dev, stmfts_power_off, sdata);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to devm_add_action_or_reset: %d\n", err);
+		goto err_regulator_put;
+	}
 
 	err = input_register_device(sdata->input);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to input_register_device: %d\n", err);
+		goto err_regulator_put;
+	}
 
 	if (sdata->use_key) {
 		err = stmfts_enable_led(sdata);
@@ -729,13 +748,19 @@ static int stmfts_probe(struct i2c_client *client,
 	}
 
 	err = devm_device_add_group(&client->dev, &stmfts_attribute_group);
-	if (err)
-		return err;
+	if (err) {
+		dev_err(&client->dev, "Failed to devm_device_add_group: %d\n", err);
+		goto err_regulator_put;
+	}
 
 	pm_runtime_enable(&client->dev);
 	device_enable_async_suspend(&client->dev);
 
 	return 0;
+
+err_regulator_put:
+	stmfts_power_off(sdata);
+	return err;
 }
 
 static int stmfts_remove(struct i2c_client *client)
