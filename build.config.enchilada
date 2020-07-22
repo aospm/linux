@@ -1,0 +1,19 @@
+. ${ROOT_DIR}/kernel/oneplus/enchilada/build.config.common
+. ${ROOT_DIR}/kernel/oneplus/enchilada/build.config.aarch64
+
+BRANCH=enchilada-android-mainline
+KERNEL_DIR=kernel/oneplus/enchilada
+
+DEFCONFIG=oneplus6_defconfig
+# TODO: Make kernel config GKI compliant!
+
+MAKE_GOALS="${MAKE_GOALS}
+qcom/sdm845-oneplus-enchilada.dtb
+Image.gz
+"
+# TODO: Add support for fajita
+
+FILES="${FILES}
+arch/arm64/boot/Image.gz
+arch/arm64/boot/dts/qcom/sdm845-oneplus-enchilada.dtb
+"
