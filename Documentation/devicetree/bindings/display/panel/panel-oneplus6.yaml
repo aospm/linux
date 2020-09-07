@@ -1,0 +1,73 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/display/panel/panel-oneplus6.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: OnePlus 6/T panel driver
+
+description: |
+  The OnePlus 6 panel driver encompasses the display panels found in the
+  OnePlus 6 and 6T devices, the panels have almost identical behaviour and
+  are not used by any other devices.
+
+maintainers:
+  - Caleb Connolly <caleb@connolly.tech>
+
+allOf:
+  - $ref: panel-common.yaml#
+
+properties:
+  compatible:
+    enum:
+      - samsung,sofef00
+      - samsung,s6e3fc2x01
+
+  reg: true
+  reset-gpios: true
+  port: true
+
+  vddio-supply:
+    description: VDDIO regulator
+
+required:
+  - compatible
+  - reset-gpios
+  - vddio-supply
+  - port
+
+unevaluatedProperties: false
+
+examples:
+  - |
+    &dsi0 {
+      status = "okay";
+      vdda-supply = <&vdda_mipi_dsi0_1p2>;
+
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      display_panel: panel@0 {
+        status = "okay";
+        compatible = "samsung,sofef00";
+
+        #address-cells = <1>;
+        #size-cells = <0>;
+        reg = <0>;
+
+        vddio-supply = <&vreg_l14a_1p88>;
+
+        reset-gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
+
+        pinctrl-names = "default";
+        pinctrl-0 = <&panel_reset_pins &panel_te_pin &panel_esd_pin>;
+
+        port {
+          panel_in: endpoint {
+            remote-endpoint = <&dsi0_out>;
+          };
+        };
+      };
+    };
+
+...
