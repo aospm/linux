@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/arm/oneplus/oneplus-boards.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: OnePlus based boards
+
+maintainers:
+  - Caleb Connolly <caleb@connolly.tech>
+
+properties:
+  $nodename:
+    const: '/'
+  compatible:
+    oneOf:
+      - description: SDM845 based boards
+        items:
+          - enum:
+              - oneplus,enchilada               # OnePlus 6
+              - oneplus,fajita                  # OnePlus 6T
+          - const: oneplus,oneplus6             # OnePlus 6 and derivatives
+
+required:
+  - compatible
