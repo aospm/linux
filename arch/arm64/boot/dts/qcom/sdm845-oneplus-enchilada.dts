@@ -34,3 +34,7 @@
 &bq27441_fg {
 	monitored-battery = <&battery>;
 };
+
+&pmi8998_fg {
+	monitored-battery = <&battery>;
+};
