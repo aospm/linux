@@ -12,6 +12,14 @@
 	compatible = "oneplus,enchilada", "qcom,sdm845";
 	qcom,msm-id = <0x141 0x20001>;
 	qcom,board-id = <8 0 17819 22>;
+
+	battery: battery {
+		compatible = "simple-battery";
+
+		charge-full-design-microamp-hours = <3300000>;
+		voltage-min-design-microvolt = <3400000>;
+		voltage-max-design-microvolt = <4400000>;
+	};
 };
 
 &display_panel {
@@ -20,4 +28,8 @@
 	compatible = "samsung,sofef00";
 
 	reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+};
+
+&pmi8998_fg {
+	monitored-battery = <&battery>;
 };
