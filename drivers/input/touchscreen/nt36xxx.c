@@ -881,7 +881,7 @@ MODULE_DEVICE_TABLE(i2c, nt36xxx_i2c_ts_id);
 static struct i2c_driver nt36xxx_i2c_ts_driver = {
 	.driver = {
 		.name	= "nt36xxx_ts",
-		.pm	= &nt36xxx_i2c_pm,
+		// .pm	= &nt36xxx_i2c_pm,
 		.of_match_table = nt36xxx_of_match,
 	},
 	.id_table	= nt36xxx_i2c_ts_id,
