@@ -663,7 +663,7 @@ static int pll_10nm_register(struct dsi_pll_10nm *pll_10nm)
 	char clk_name[32], parent[32], vco_name[32];
 	char parent2[32], parent3[32], parent4[32];
 	struct clk_init_data vco_init = {
-		.parent_names = (const char *[]){ "xo" },
+		.parent_names = (const char *[]){ "xo_board" },
 		.num_parents = 1,
 		.name = vco_name,
 		.flags = CLK_IGNORE_UNUSED,
