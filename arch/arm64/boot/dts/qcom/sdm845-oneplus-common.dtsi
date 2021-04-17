@@ -7,6 +7,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/dma/qcom-gpi.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/linux-event-codes.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
@@ -421,6 +422,11 @@
 			qcom,drive-strength = <0>;
 		};
 	};
+};
+
+&pmi8998_haptics {
+	status = "okay";
+	qcom,wave-play-rate-us = <4255>;
 };
 
 &qupv3_id_1 {
