@@ -52,6 +52,10 @@
 		 * but given the same address every time. Hard code it as this address is
 		 * where the modem firmware expects it to be.
 		 */
+		rmtfs_lower_guard: memory@f5b00000 {
+			no-map;
+			reg = <0 0xf5b00000 0 0x1000>;
+		};
 		rmtfs_mem: memory@f5b01000 {
 			compatible = "qcom,rmtfs-mem";
 			reg = <0 0xf5b01000 0 0x200000>;
@@ -59,6 +63,10 @@
 
 			qcom,client-id = <1>;
 			qcom,vmid = <15>;
+		};
+		rmtfs_upper: memory@f5d01000 {
+			no-map;
+			reg = <0 0xf5d01000 0 0x1000>;
 		};
 
 		/*
