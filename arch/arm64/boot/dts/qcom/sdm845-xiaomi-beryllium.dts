@@ -2,6 +2,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/dma/qcom-gpi.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
@@ -121,7 +122,7 @@
 
 &adsp_pas {
 	status = "okay";
-	firmware-name = "qcom/sdm845/adsp.mdt";
+	firmware-name = "qcom/sdm845/beryllium/adsp.mbn";
 };
 
 &apps_rsc {
@@ -206,9 +207,13 @@
 	};
 };
 
+&apps_smmu {
+	status = "okay";
+};
+
 &cdsp_pas {
 	status = "okay";
-	firmware-name = "qcom/sdm845/cdsp.mdt";
+	firmware-name = "qcom/sdm845/beryllium/cdsp.mbn";
 };
 
 &dsi0 {
@@ -256,10 +261,18 @@
 			   <GCC_LPASS_SWAY_CLK>;
 };
 
+&gpi_dma0 {
+	status = "okay";
+};
+
+&gpi_dma1 {
+	status = "okay";
+};
+
 &gpu {
 	zap-shader {
 		memory-region = <&gpu_mem>;
-		firmware-name = "qcom/sdm845/a630_zap.mbn";
+		firmware-name = "qcom/sdm845/beryllium/a630_zap.mbn";
 	};
 };
 
@@ -290,7 +303,59 @@
 
 &mss_pil {
 	status = "okay";
-	firmware-name = "qcom/sdm845/mba.mbn", "qcom/sdm845/modem.mdt";
+	firmware-name = "qcom/sdm845/beryllium/mba.mbn", "qcom/sdm845/beryllium/modem.mbn";
+};
+
+&ipa {
+	status = "okay";
+	memory-region = <&ipa_fw_mem>;
+};
+
+
+&i2c5 {
+	#dma-cells = <3>;
+	status="okay";
+
+	dmas = <&gpi_dma0 0 5 QCOM_GPI_I2C>,
+		   <&gpi_dma0 1 5 QCOM_GPI_I2C>;
+	dma-names = "tx", "rx";
+
+	/*smart PA*/
+	tas2559_codec: tas2559@4c{
+		#sound-dai-cells = <1>;
+		compatible = "ti,tas2559";
+		reg = <0x4c>;
+		ti,tas2559-reset-gpio = <&tlmm 12 0>;
+		ti,tas2560-reset-gpio = <&tlmm 76 0>;
+		ti,tas2559-irq-gpio = <&tlmm 11 0>;
+		ti,tas2560-irq-gpio = <&tlmm 30 0>;
+		ti,tas2559-addr = <0x4c>;
+		ti,tas2560-addr = <0x4d>;
+		ti,tas2559-channel = <0>; /* 0, left; 1, right */
+		ti,tas2560-channel = <1>; /* 0, left; 1, right */
+		ti,ycrc-enable = <1>; /* 0, disable; non-zero, enable */
+		ti,echo-ref = <0>; /* 0, left channel; 1, right channel; 2, both */
+		ti,bit-rate = <16>; /* 16, 20, 24, 32 */
+	};
+};
+
+&i2c14 {
+	#dma-cells = <3>;
+	status="okay";
+
+	dmas =  <&gpi_dma1 0 6 QCOM_GPI_I2C>,
+			<&gpi_dma1 1 6 QCOM_GPI_I2C>;
+	dma-names = "tx", "rx";
+
+		touchscreen: novatek@62 {
+				compatible = "novatek,nt36525"; /* Should be novatek,nt36672A instead #TODO */
+				reg = <0x62>;
+				vdd-supply = <&vreg_l14a_1p8>;
+				interrupt-parent = <&tlmm>;
+				interrupts = <31 IRQ_TYPE_EDGE_RISING>;
+				reset-gpio = <&tlmm 32 0x00 /* GPIO_ACTIVE_HIGH */ >;
+		};
+
 };
 
 &pm8998_gpio {
@@ -301,6 +366,28 @@
 		bias-pull-up;
 		qcom,drive-strength = <PMIC_GPIO_STRENGTH_NO>;
 	};
+};
+
+&pmi8998_wled {
+	status = "okay";
+	qcom,current-limit-microamp = <20000>;
+	qcom,enabled-strings = <0 1>;
+	qcom,num-strings = <2>;
+	qcom,switching-freq = <600>;
+	qcom,cabc;
+};
+
+&pmi8998_fg {
+	status = "okay";
+	qcom,max-voltage-uv = <4400000>;
+	qcom,min-voltage-uv = <3700000>;
+	qcom,battery-capacity-ua = <4000000>;
+};
+
+&pmi8998_haptics {
+	status = "okay";
+	// This is the LRA resonant frequency and is device specific
+	qcom,wave-play-rate-us = <4878>;
 };
 
 &pm8998_pon {
@@ -341,6 +428,10 @@
 };
 
 &qupv3_id_0 {
+	status = "okay";
+};
+
+&qupv3_id_1 {
 	status = "okay";
 };
 
@@ -387,6 +478,21 @@
 		link-name = "MultiMedia3";
 		cpu {
 			sound-dai = <&q6asmdai  MSM_FRONTEND_DAI_MULTIMEDIA3>;
+		};
+	};
+
+	tas2559-dai-link {
+		link-name = "Primary Spkr Playback";
+		cpu {
+			sound-dai = <&q6afedai QUATERNARY_MI2S_RX>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+
+		codec {
+			sound-dai =  <&tas2559_codec 0>;
 		};
 	};
 
