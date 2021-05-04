@@ -223,8 +223,8 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	panel@0 {
-		compatible = "tianma,fhd-video";
+	display_panel: panel@0 {
+		status = "disabled";
 		reg = <0>;
 		vddi0-supply = <&vreg_l14a_1p8>;
 		vddpos-supply = <&lab>;
@@ -236,7 +236,7 @@
 		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
 
 		port {
-			tianma_nt36672a_in_0: endpoint {
+			panel_in_0: endpoint {
 				remote-endpoint = <&dsi0_out>;
 			};
 		};
@@ -244,7 +244,7 @@
 };
 
 &dsi0_out {
-	remote-endpoint = <&tianma_nt36672a_in_0>;
+	remote-endpoint = <&panel_in_0>;
 	data-lanes = <0 1 2 3>;
 };
 
@@ -337,25 +337,6 @@
 		ti,echo-ref = <0>; /* 0, left channel; 1, right channel; 2, both */
 		ti,bit-rate = <16>; /* 16, 20, 24, 32 */
 	};
-};
-
-&i2c14 {
-	#dma-cells = <3>;
-	status="okay";
-
-	dmas =  <&gpi_dma1 0 6 QCOM_GPI_I2C>,
-			<&gpi_dma1 1 6 QCOM_GPI_I2C>;
-	dma-names = "tx", "rx";
-
-		touchscreen: novatek@62 {
-				compatible = "novatek,nt36525"; /* Should be novatek,nt36672A instead #TODO */
-				reg = <0x62>;
-				vdd-supply = <&vreg_l14a_1p8>;
-				interrupt-parent = <&tlmm>;
-				interrupts = <31 IRQ_TYPE_EDGE_RISING>;
-				reset-gpio = <&tlmm 32 0x00 /* GPIO_ACTIVE_HIGH */ >;
-		};
-
 };
 
 &pm8998_gpio {
