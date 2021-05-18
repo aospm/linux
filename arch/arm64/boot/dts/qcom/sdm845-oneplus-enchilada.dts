@@ -34,3 +34,46 @@
 &pmi8998_fg {
 	monitored-battery = <&battery>;
 };
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	max98927_codec: max98927@3a {
+		#sound-dai-cells = <1>;
+		compatible = "maxim,max98927";
+		reg = <0x3a>;
+		vmon-slot-no = <1>;
+		imon-slot-no = <0>;
+	};
+};
+
+&sound {
+	model = "OnePlus 6";
+	audio-routing =	"RX_BIAS", "MCLK",
+			"AMIC2", "MIC BIAS2",
+			"AMIC3", "MIC BIAS4",
+			"AMIC4", "MIC BIAS1",
+			"AMIC5", "MIC BIAS4";
+
+	speaker-dai-link {
+		codec {
+			sound-dai = <&max98927_codec 0>;
+		};
+	};
+};
+
+&tlmm {
+	speaker-en-gpio {
+		gpio-hog;
+		gpios = <69 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};
+
+&wcd9340 {
+	qcom,micbias1-microvolt = <1800000>;
+	qcom,micbias2-microvolt = <2700000>;
+	qcom,micbias3-microvolt = <1800000>;
+	qcom,micbias4-microvolt = <1800000>;
+};
