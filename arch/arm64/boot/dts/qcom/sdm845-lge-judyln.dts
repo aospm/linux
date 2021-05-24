@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * SDM845 LG G7 (judyln) device tree.
+ *
+ * Copyright (c) 2021, The Linux Foundation. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "sdm845-lge-common.dtsi"
+
+/ {
+	model = "LG G7 ThinQ";
+	compatible = "lge,judyln", "qcom,sdm845";
+
+	chosen {
+		framebuffer@9d400000 {
+			reg = <0x0 0x9d400000 0x0 (1440 * 3120 * 4)>;
+			height = <3120>;
+			lab-supply = <&lab>;
+			ibb-supply = <&ibb>;
+		};
+	};
+
+	/* Additional ThinQ key */
+	gpio-keys {
+		pinctrl-0 = <&vol_up_pin_a &thinq_key_default>;
+
+		thinq {
+			label = "ThinQ";
+			linux,code = <KEY_ASSISTANT>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <89 IRQ_TYPE_LEVEL_LOW>;
+		};
+	};
+};
+
+&adsp_pas {
+	firmware-name = "qcom/sdm845/judyln/adsp.mbn";
+};
+
+&apps_rsc {
+	pm8998-rpmh-regulators {
+		smps5 {
+			regulator-min-microvolt = <1904000>;
+		};
+
+		ldo22 {
+			regulator-min-microvolt = <2800000>;
+			regulator-max-microvolt = <2800000>;
+		};
+	};
+};
+
+&cdsp_pas {
+	firmware-name = "qcom/sdm845/judyln/cdsp.mbn";
+};
+
+&gpu {
+	zap-shader {
+		firmware-name = "qcom/sdm845/judyln/a630_zap.mbn";
+	};
+};
+
+&mss_pil {
+	firmware-name = "qcom/sdm845/judyln/mba.mbn", "qcom/sdm845/judyln/modem.mbn";
+};
+
+&sdhc_2 {
+	cd-gpios = <&tlmm 126 GPIO_ACTIVE_LOW>; 
+};
+
+&tlmm {
+	thinq_key_default: thinq-key-default {
+		pins = "gpio89";
+		function = "gpio";
+
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+};
