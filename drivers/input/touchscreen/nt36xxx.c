@@ -438,11 +438,11 @@ static void nt36xxx_report(struct nt36xxx_i2c *ts)
 				obj->tm = 1;
 
 			obj->z = point[ppos + 5];
-			if (i < 2) {
-				obj->z += point[i + 63] << 8;
-				if (obj->z > TOUCH_MAX_PRESSURE)
-					obj->z = TOUCH_MAX_PRESSURE;
-			}
+			// if (i < 2) {
+			// 	obj->z += point[i + 63] << 8;
+			// 	if (obj->z > TOUCH_MAX_PRESSURE)
+			// 		obj->z = TOUCH_MAX_PRESSURE;
+			// }
 
 			if (obj->z == 0)
 				obj->z = 1;
