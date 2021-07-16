@@ -17,3 +17,7 @@
 
 	compatible = "samsung,sofef00";
 };
+
+&pmi8998_fg {
+	qcom,battery-capacity-ua = <3300000>;
+};

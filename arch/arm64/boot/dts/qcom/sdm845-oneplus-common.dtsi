@@ -441,6 +441,13 @@
 	};
 };
 
+&pmi8998_fg {
+	status = "okay";
+
+	qcom,max-voltage-uv = <4400000>;
+	qcom,min-voltage-uv = <3600000>;
+};
+
 &pmi8998_haptics {
 	status = "okay";
 
