@@ -757,6 +757,10 @@
 	};
 };
 
+&venus {
+	firmware-name = "qcom/sdm845/oneplus6/venus.mbn";
+};
+
 &wcd9340 {
 	pinctrl-0 = <&wcd_intr_default>;
 	pinctrl-names = "default";
