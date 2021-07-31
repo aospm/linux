@@ -4498,15 +4498,24 @@
 					opp-peak-kBps = <4068000>;
 				};
 
+				/*
+				 * This is a hack to reduce the difference in voltage between
+				 * the lowest and highest opp levels, it fixes the vdd gfx
+				 * regulator not being able to keep up with fast frequency
+				 * changes making the gpu unstable.
+				 * It will result in worse power consumption at idle.
+				 */
 				opp-342000000 {
 					opp-hz = /bits/ 64 <342000000>;
-					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+					//opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
 					opp-peak-kBps = <2724000>;
 				};
 
 				opp-257000000 {
 					opp-hz = /bits/ 64 <257000000>;
-					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+					//opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
 					opp-peak-kBps = <1648000>;
 				};
 			};
