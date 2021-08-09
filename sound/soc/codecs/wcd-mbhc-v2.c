@@ -452,6 +452,12 @@ static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 {
 	if (mbhc->current_plug == plug_type)
 		return;
+	
+	dev_info(mbhc->dev, "CA:: %s, type=%d (%s)", __func__, plug_type,
+		plug_type == MBHC_PLUG_TYPE_HEADPHONE ? "MBHC_PLUG_TYPE_HEADPHONE"
+		: (plug_type == MBHC_PLUG_TYPE_HEADSET ? "MBHC_PLUG_TYPE_HEADSET"
+		: (plug_type == MBHC_PLUG_TYPE_HIGH_HPH ? "MBHC_PLUG_TYPE_HIGH_HPH"
+		: "unknown")));
 
 	mutex_lock(&mbhc->lock);
 
@@ -1041,10 +1047,11 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	disable_irq_nosync(mbhc->intr_ids->mbhc_hs_ins_intr);
 
 	/* Check for cross connection */
-	do {
-		cross_conn = wcd_check_cross_conn(mbhc);
-		try++;
-	} while (try < GND_MIC_SWAP_THRESHOLD);
+	//!!!!!!!!!! This seems to be faulty with my headphones
+	// do {
+	// 	cross_conn = wcd_check_cross_conn(mbhc);
+	// 	try++;
+	// } while (try < GND_MIC_SWAP_THRESHOLD);
 
 	if (cross_conn > 0) {
 		plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
