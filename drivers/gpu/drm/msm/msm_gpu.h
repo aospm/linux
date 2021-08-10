@@ -99,8 +99,8 @@ struct msm_gpu_devfreq {
 	/** time: Time of last sampling period. */
 	ktime_t time;
 
-	/** idle_time: Time of last transition to idle: */
-	ktime_t idle_time;
+	/** transition_time: Time of last transition between idle/active: */
+	ktime_t transition_time;
 
 	/**
 	 * idle_freq:

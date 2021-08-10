@@ -157,7 +157,7 @@ void msm_devfreq_active(struct msm_gpu *gpu)
 	 */
 	mutex_lock(&df->devfreq->lock);
 
-	idle_time = ktime_to_ms(ktime_sub(ktime_get(), df->idle_time));
+	idle_time = ktime_to_ms(ktime_sub(ktime_get(), df->transition_time));
 
 	/*
 	 * If we've been idle for a significant fraction of a polling
@@ -168,7 +168,7 @@ void msm_devfreq_active(struct msm_gpu *gpu)
 		target_freq *= 2;
 	}
 
-	df->idle_freq = 0;
+	df->transition_time = ktime_get();;
 
 	msm_devfreq_target(&gpu->pdev->dev, &target_freq, 0);
 
@@ -185,6 +185,16 @@ void msm_devfreq_idle(struct msm_gpu *gpu)
 {
 	struct msm_gpu_devfreq *df = &gpu->devfreq;
 	unsigned long idle_freq, target_freq = 0;
+	unsigned int active_time;
+
+	active_time = ktime_to_ms(ktime_sub(ktime_get(), df->transition_time));
+	/*
+	 * Don't go back to idle unless we've been active for at least 30ms
+	 * to avoid thrashing.
+	 */
+	if (active_time < 30) {
+		return;
+	}
 
 	/*
 	 * Hold devfreq lock to synchronize with get_dev_status()/
@@ -196,7 +206,7 @@ void msm_devfreq_idle(struct msm_gpu *gpu)
 
 	msm_devfreq_target(&gpu->pdev->dev, &target_freq, 0);
 
-	df->idle_time = ktime_get();
+	df->transition_time = ktime_get();
 	df->idle_freq = idle_freq;
 
 	mutex_unlock(&df->devfreq->lock);
