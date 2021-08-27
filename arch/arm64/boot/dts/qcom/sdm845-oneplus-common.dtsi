@@ -429,6 +429,11 @@
 	firmware-name = "qcom/sdm845/oneplus6/ipa_fws.mbn";
 };
 
+&slpi_pas {
+	status = "okay";
+	firmware-name = "qcom/sdm845/oneplus6/slpi.mbn";
+};
+
 &mdss {
 	status = "okay";
 };
