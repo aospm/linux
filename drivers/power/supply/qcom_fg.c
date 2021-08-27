@@ -9,11 +9,13 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
 #include <linux/types.h>
 #include <linux/workqueue.h>
+#include <soc/qcom/qcom-pmic.h>
 
 #include "qcom_fg.h"
 
@@ -434,6 +436,32 @@ static int qcom_fg_get_capacity(struct qcom_fg_chip *chip, int *val)
 }
 
 /**
+ * @brief qcom_fg_get_status() - Get status of battery
+ * 
+ * Gets the "usb" power supply to check the charging status
+ *
+ * @param chip Pointer to chip
+ * @param val Pointer to store value at
+ * @return int 0 on success, negative errno on error
+ */
+static int qcom_fg_get_status(struct qcom_fg_chip *chip, union power_supply_propval *psp)
+{
+	int ret;
+	struct power_supply *chg_psy;
+
+	chg_psy = power_supply_get_by_phandle(chip->dev->of_node, "qcom,charger");
+
+	if (IS_ERR_OR_NULL(chg_psy)) {
+		dev_info(chip->dev, "Couldn't find USB power supply");
+		return PTR_ERR(chg_psy);
+	}
+
+	ret = power_supply_get_property(chg_psy, POWER_SUPPLY_PROP_STATUS, psp);
+
+	return 0;
+}
+
+/**
  * @brief qcom_fg_get_temperature() - Get temperature of battery
  *
  * @param chip Pointer to chip
@@ -725,6 +753,7 @@ static int qcom_fg_gen3_get_temp_threshold(struct qcom_fg_chip *chip,
 /* Pre-Gen3 fuel gauge. PMI8996 and older */
 static const struct qcom_fg_ops ops_fg = {
 	.get_capacity = qcom_fg_get_capacity,
+	.get_status = qcom_fg_get_status,
 	.get_temperature = qcom_fg_get_temperature,
 	.get_current = qcom_fg_get_current,
 	.get_voltage = qcom_fg_get_voltage,
@@ -735,6 +764,7 @@ static const struct qcom_fg_ops ops_fg = {
 /* Gen3 fuel gauge. PMI8998 and newer */
 static const struct qcom_fg_ops ops_fg_gen3 = {
 	.get_capacity = qcom_fg_get_capacity,
+	.get_status = qcom_fg_get_status,
 	.get_temperature = qcom_fg_gen3_get_temperature,
 	.get_current = qcom_fg_gen3_get_current,
 	.get_voltage = qcom_fg_gen3_get_voltage,
@@ -742,6 +772,7 @@ static const struct qcom_fg_ops ops_fg_gen3 = {
 };
 
 static enum power_supply_property qcom_fg_props[] = {
+	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
@@ -768,6 +799,9 @@ static int qcom_fg_get_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
+		break;
+	case POWER_SUPPLY_PROP_STATUS:
+		ret = chip->ops->get_status(chip, val);
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		ret = chip->ops->get_capacity(chip, &val->intval);
@@ -930,6 +964,7 @@ static int qcom_fg_probe(struct platform_device *pdev)
 {
 	struct power_supply_config supply_config = {};
 	struct qcom_fg_chip *chip;
+	struct qcom_spmi_pmic *pmic;
 	const __be32 *prop_addr;
 	int irq;
 	u8 dma_status;
@@ -949,6 +984,10 @@ static int qcom_fg_probe(struct platform_device *pdev)
 		dev_err(chip->dev, "Failed to locate the regmap\n");
 		return -ENODEV;
 	}
+
+	chip->pmic = (struct qcom_spmi_pmic*)platform_get_drvdata(pdev->dev.parent);
+
+	print_pmic_info(chip->dev, pmic);
 
 	/* Get base address */
 	prop_addr = of_get_address(pdev->dev.of_node, 0, NULL, NULL);

@@ -53,6 +53,7 @@ struct qcom_fg_chip;
 
 struct qcom_fg_ops {
 	int (*get_capacity)(struct qcom_fg_chip *chip, int *);
+	int (*get_status)(struct qcom_fg_chip *chip, union power_supply_propval *);
 	int (*get_temperature)(struct qcom_fg_chip *chip, int *);
 	int (*get_current)(struct qcom_fg_chip *chip, int *);
 	int (*get_voltage)(struct qcom_fg_chip *chip, int *);
@@ -66,6 +67,7 @@ struct qcom_fg_chip {
 	struct device *dev;
 	unsigned int base;
 	struct regmap *regmap;
+	struct qcom_spmi_pmic *pmic;
 	const struct qcom_fg_ops *ops;
 
 	struct power_supply *batt_psy;
