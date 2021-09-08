@@ -4,7 +4,14 @@
  * Copyright (c) 2021, Caleb Connolly <caleb.connolly@linaro.org>
  */
 
+// The registers are grouped up like this, these addresses are relative to
+// the pmic. The registers as noted in qcom_smb2.c are all relative and include
+// the offsets from here.
+#define CHGR_BASE				0x1000
+#define OTG_BASE				0x1100
+#define BATIF_BASE				0x1200
 #define USBIN_BASE				0x1300
+#define DCIN_BASE				0x1400
 #define MISC_BASE				0x1600
 #define REG_BASE				0x4000
 #define REG_BATT				0x4100
