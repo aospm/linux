@@ -7,6 +7,7 @@
 &display_panel {
 	status = "okay";
 	compatible = "tianma,fhd-video";
+	backlight = <&pmi8998_wled>;
 };
 
 &i2c14 {
