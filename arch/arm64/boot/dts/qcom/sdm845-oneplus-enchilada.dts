@@ -39,6 +39,10 @@
 	monitored-battery = <&battery>;
 };
 
+&pmi8998_charger {
+	monitored-battery = <&battery>;
+};
+
 &i2c4 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -76,3 +80,4 @@
 	qcom,micbias3-microvolt = <1800000>;
 	qcom,micbias4-microvolt = <1800000>;
 };
+
