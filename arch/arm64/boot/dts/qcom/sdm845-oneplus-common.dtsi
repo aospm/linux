@@ -458,6 +458,11 @@
 
 &pmi8998_fg {
 	status = "okay";
+	power-supplies = <&pmi8998_smb2>;
+};
+
+&pmi8998_smb2 {
+	status = "okay";
 };
 
 &q6afedai {

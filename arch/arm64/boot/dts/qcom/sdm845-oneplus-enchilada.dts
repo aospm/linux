@@ -35,6 +35,10 @@
 	monitored-battery = <&battery>;
 };
 
+&pmi8998_smb2 {
+	monitored-battery = <&battery>;
+};
+
 &i2c4 {
 	status = "okay";
 	clock-frequency = <400000>;
