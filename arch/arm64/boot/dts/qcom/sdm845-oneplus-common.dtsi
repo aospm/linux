@@ -467,6 +467,10 @@
 	status = "okay";
 };
 
+&pmi8998_smb2 {
+	status = "okay";
+};
+
 &q6afedai {
 	qi2s@22 {
 		reg = <22>;
