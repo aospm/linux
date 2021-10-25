@@ -256,6 +256,12 @@
 #define USBIN_HV_COLLAPSE_RESPONSE_BIT			BIT(1)
 #define USBIN_LV_COLLAPSE_RESPONSE_BIT			BIT(0)
 
+#define USBIN_5V_AICL_THRESHOLD_CFG_REG			0x381
+#define USBIN_5V_AICL_THRESHOLD_CFG_MASK		GENMASK(2, 0)
+
+#define USBIN_CONT_AICL_THRESHOLD_CFG_REG		0x384
+#define USBIN_CONT_AICL_THRESHOLD_CFG_MASK		GENMASK(5, 0)
+
 #define DC_ENG_SSUPPLY_CFG2_REG				0x4C1
 #define ENG_SSUPPLY_IVREF_OTG_SS_MASK			GENMASK(2, 0)
 #define OTG_SS_SLOW					0x3
@@ -854,7 +860,54 @@ static const struct regulator_desc otg_reg_desc = {
 	.of_match = "otg-vbus",
 };
 
-static int smb2_init_hw(struct smb2_chip *chip) {
+static int smb2_init_hw_old(struct smb2_chip *chip) {
+	int rc;
+	int val;
+
+	// OnePlus hw init stuff
+
+	rc = smb2_write_masked(chip, chip->base + USBIN_5V_AICL_THRESHOLD_CFG_REG,
+				USBIN_5V_AICL_THRESHOLD_CFG_MASK, 0x3);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't set 5v auto-ICL threshold rc=%d\n", rc);
+		goto out;
+	}
+
+	rc = smb2_write_masked(chip, chip->base + USBIN_CONT_AICL_THRESHOLD_CFG_REG,
+				USBIN_CONT_AICL_THRESHOLD_CFG_MASK, 0x3);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't set cont auto-ICL threshold rc=%d\n", rc);
+		goto out;
+	}
+
+	rc = smb2_write_masked(chip, chip->base + USBIN_AICL_OPTIONS_CFG_REG,
+				SUSPEND_ON_COLLAPSE_USBIN_BIT
+				|USBIN_HV_COLLAPSE_RESPONSE_BIT
+				|USBIN_LV_COLLAPSE_RESPONSE_BIT,
+
+				SUSPEND_ON_COLLAPSE_USBIN_BIT
+				|USBIN_HV_COLLAPSE_RESPONSE_BIT
+				|USBIN_LV_COLLAPSE_RESPONSE_BIT);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't set auto-ICL configuration rc=%d\n", rc);
+		goto out;
+	}
+
+	/*
+	 * Downstream writes to bits 1 and 0 of this register but they are not
+	 * listed anywhere, this is probably bad code, the read-back value sets
+	 * USBIN_OV_CH_LOAD_OPTION_BIT but not ICL_OVERRIDE_AFTER_APSD_BIT
+	 * so replicate that here.
+	 */
+	rc = smb2_write_masked(chip, chip->base + USBIN_LOAD_CFG_REG,
+				USBIN_OV_CH_LOAD_OPTION_BIT|ICL_OVERRIDE_AFTER_APSD_BIT, USBIN_OV_CH_LOAD_OPTION_BIT);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't set cont auto-ICL threshold rc=%d\n", rc);
+		goto out;
+	}
+}
+
+static int smb2_init_hw_old(struct smb2_chip *chip) {
 	int rc;
 	int val;
 
