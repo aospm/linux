@@ -24,7 +24,27 @@
 	};
 
 	chosen {
-		stdout-path = "serial0:115200n8";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+		stdout-path = "framebuffer0"; //"serial0:115200n8";
+
+		framebuffer0: framebuffer@9d400000 {
+			compatible = "simple-framebuffer";
+			reg = <0x9d400000 (1080 * 2280 * 4)>;
+			width = <1080>;
+			height = <2280>;
+			stride = <(1080 * 4)>;
+			format = "a8r8g8b8";
+			status = "okay";
+
+			vdda-supply = <&vreg_l14a_1p88>;
+			vddio-supply = <&vdda_mipi_dsi0_1p2>;
+			vddi-supply = <&vdda_mipi_dsi0_pll>;
+			vci-supply = <&vreg_l28a_3p0>;
+
+		};
+
 	};
 
 	gpio-keys {
@@ -85,6 +105,13 @@
 			no-map;
 			reg = <0 0x88f00000 0 0x1c00000>;
 		};
+
+		framebuffer_region@9d400000 {
+			compatible = "removed-dma-pool";
+			reg = <0x0 0x9d400000 0x0 (1080 * 2280 * 4)>;
+			no-map;
+		};
+
 
 		ramoops: ramoops@ac300000 {
 			compatible = "ramoops";
