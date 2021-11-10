@@ -1994,19 +1994,24 @@ static int wcd934x_get_channel_map(struct snd_soc_dai *dai,
 
 	wcd = snd_soc_component_get_drvdata(dai->component);
 
+	pr_info("%s(dai=%px, tx_num=%px, tx_slot=%px, rx_num=%px, rx_slot=%px), wcd=%px", __func__, dai, tx_num, tx_slot, rx_num, rx_slot, wcd);
+
 	switch (dai->id) {
 	case AIF1_PB:
 	case AIF2_PB:
 	case AIF3_PB:
 	case AIF4_PB:
-		if (!rx_slot || !rx_num) {
-			dev_err(wcd->dev, "Invalid rx_slot %p or rx_num %p\n",
-				rx_slot, rx_num);
-			return -EINVAL;
-		}
+		list_for_each_entry(ch, &wcd->dai[dai->id].slim_ch_list, list) {
+			// catch ch_num == null
+			if (i >= 719) {
+				dev_err(wcd->dev, "Invalid ch %px\n",
+					ch);
+				break;
+			}
 
-		list_for_each_entry(ch, &wcd->dai[dai->id].slim_ch_list, list)
 			rx_slot[i++] = ch->ch_num;
+			pr_info("%s() i=%d, ch=%px, ch_num=%d", __func__, i-1, ch, ch->ch_num);
+		}
 
 		*rx_num = i;
 		break;
@@ -2019,8 +2024,11 @@ static int wcd934x_get_channel_map(struct snd_soc_dai *dai,
 			return -EINVAL;
 		}
 
-		list_for_each_entry(ch, &wcd->dai[dai->id].slim_ch_list, list)
+		list_for_each_entry(ch, &wcd->dai[dai->id].slim_ch_list, list) {
+			pr_info("%s() i=%d, ch_num=%d", __func__, i, ch->ch_num);
 			tx_slot[i++] = ch->ch_num;
+
+		}
 
 		*tx_num = i;
 		break;
