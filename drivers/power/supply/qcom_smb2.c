@@ -168,6 +168,10 @@
 #define TYPEC_TRYSOURCE_DETECT_STATUS_BIT		BIT(1)
 #define TYPEC_TRYSINK_DETECT_STATUS_BIT			BIT(0)
 
+#define CMD_APSD_REG					0x341
+#define ICL_OVERRIDE_BIT				BIT(1)
+#define APSD_RERUN_BIT					BIT(0)
+
 #define TYPE_C_CFG_REG					0x358
 #define APSD_START_ON_CC_BIT				BIT(7)
 #define WAIT_FOR_APSD_BIT				BIT(6)
@@ -342,6 +346,7 @@ struct smb2_chip {
 	struct mutex lock;
 	struct qcom_spmi_pmic *pmic;
 	struct delayed_work icl_work; // Current limit work
+	struct power_supply_battery_info batt_info;
 
 	struct smb_iio iio;
 
@@ -385,11 +390,11 @@ static int smb2_read(struct smb2_chip *chip, unsigned char *val, unsigned short 
 	if ((addr & 0xff00) == 0)
 		return -EINVAL;
 
-	dev_vdbg(chip->dev, "%s: Reading from 0x%x", __func__, addr);
-
 	rc = regmap_read(chip->regmap, addr, &temp);
-	if (rc > 0)
+	if (rc >= 0)
 		*val = (unsigned char)temp;
+
+	dev_info(chip->dev, "%s: Read val = 0x%x from addr = 0x%x", __func__, temp, addr);
 	return rc;
 }
 
@@ -411,7 +416,7 @@ static int smb2_write(struct smb2_chip *chip, unsigned short addr, unsigned char
 	if ((addr & 0xff00) == 0)
 			return -EINVAL;
 
-	dev_vdbg(chip->dev, "%s: Writing 0x%x to 0x%x", __func__, val, addr);
+	dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x", __func__, val, addr);
 
 	if (sec_access) {
 		ret = regmap_bulk_write(chip->regmap,
@@ -442,7 +447,8 @@ static int smb2_write_masked(struct smb2_chip *chip, unsigned short addr, unsign
 	if ((addr & 0xff00) == 0)
 			return -EINVAL;
 
-	dev_vdbg(chip->dev, "%s: Writing 0x%x to 0x%x", __func__, val, addr);
+	dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x, mask = 0x%x",
+		__func__, val, addr, mask);
 
 	if (sec_access) {
 		ret = regmap_bulk_write(chip->regmap,
@@ -455,7 +461,18 @@ static int smb2_write_masked(struct smb2_chip *chip, unsigned short addr, unsign
 	return regmap_update_bits(chip->regmap, addr, mask, val);
 }
 
-// qcom "automatic power source detection" aka adsp
+
+static void smb2_rerun_apsd(struct smb2_chip *chip)
+{
+	int rc;
+
+	rc = smb2_write_masked(chip, chip->base + CMD_APSD_REG,
+				APSD_RERUN_BIT, APSD_RERUN_BIT);
+	if (rc < 0)
+		dev_err(chip->dev, "Couldn't re-run APSD rc=%d\n", rc);
+}
+
+// qcom "automatic power source detection" aka APSD
 // tells us what type of charger we're connected to.
 static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int* val) {
 	int rc;
@@ -466,8 +483,9 @@ static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int* val) {
 		dev_err(chip->dev, "Failed to read apsd status, rc = %d", rc);
 		return rc;
 	}
+	dev_info(chip->dev, "APSD_STATUS = 0x%02x\n", apsd_stat);
 	if (!(apsd_stat & APSD_DTC_STATUS_DONE_BIT)) {
-		dev_dbg(chip->dev, "Apsd not read");
+		dev_err(chip->dev, "Apsd not read");
 		return -EAGAIN;
 	}
 
@@ -494,7 +512,6 @@ static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int* val) {
 
 	return 0;
 }
-
 
 int smb2_get_prop_usb_online(struct smb2_chip *chip, int *val) {
 	unsigned char stat;
@@ -576,7 +593,7 @@ static inline int smb2_set_current_limit(struct smb2_chip *chip, unsigned int va
 		return -EINVAL;
 	}
 	val_raw = val / 25000;
-	return smb2_write(chip, USBIN_CURRENT_LIMIT_CFG_REG, val_raw);
+	return smb2_write(chip, chip->base + USBIN_CURRENT_LIMIT_CFG_REG, val_raw);
 }
 
 // This currently assumes we are UFP
@@ -587,11 +604,24 @@ int smb2_get_current_max(struct smb2_chip *chip,
 	unsigned int charger_type, hw_current_limit, current_ua;
 	bool non_compliant;
 	unsigned char val;
+	int count;
 
-	rc = smb2_apsd_get_charger_type(chip, &charger_type);
-	if (rc < 0) {
-		dev_err(chip->dev, "Failed to read ADSP, rc=%d", rc);
+	for (count = 0; count < 10; count++) {
+		rc = smb2_apsd_get_charger_type(chip, &charger_type);
+		if (rc < 0) {
+			dev_err(chip->dev, "Failed to read APSD, rc=%d", rc);
+		} else {
+			break;
+		}
+		msleep(100);
 	}
+
+	if (rc < 0) {
+		dev_err(chip->dev, "Failed to read APSD, rerun, rc=%d", rc);
+		smb2_rerun_apsd(chip);
+		return -EAGAIN;
+	}
+	
 
 	rc = smb2_read(chip, &val, chip->base + TYPE_C_STATUS_5_REG);
 	if (rc < 0) {
@@ -857,6 +887,7 @@ static const struct regulator_desc otg_reg_desc = {
 static int smb2_init_hw(struct smb2_chip *chip) {
 	int rc;
 	int val;
+	unsigned char blah;
 
 	/**
 	 * 
@@ -868,27 +899,26 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	mutex_lock(&chip->lock);
 
 	/* set a slower soft start setting for OTG */
-	rc = smb2_write_masked(chip, chip->base + DC_ENG_SSUPPLY_CFG2_REG,
-				ENG_SSUPPLY_IVREF_OTG_SS_MASK, OTG_SS_SLOW);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't set otg soft start rc=%d\n", rc);
-		goto out;
-	}
+	// rc = smb2_write_masked(chip, chip->base + DC_ENG_SSUPPLY_CFG2_REG,
+	// 			ENG_SSUPPLY_IVREF_OTG_SS_MASK, OTG_SS_SLOW);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't set otg soft start rc=%d\n", rc);
+	// 	goto out;
+	// }
 
 	/* set a AICL THR for DCIN  */
-	dev_info(chip->dev, "Calling smb2_write() for AICL THR");
-	rc = smb2_write(chip, chip->base + DCIN_AICL_REF_SEL_CFG_REG, 0x3);
-	if (rc < 0) {
-		pr_err("Couldn't write DCIN_AICL_REF_SEL_CFG_REG\n");
-		goto out;
-	}
+	// rc = smb2_write(chip, chip->base + DCIN_AICL_REF_SEL_CFG_REG, 0x3);
+	// if (rc < 0) {
+	// 	pr_err("Couldn't write DCIN_AICL_REF_SEL_CFG_REG\n");
+	// 	goto out;
+	// }
 
 	/* disable qcom wipower*/
-	rc = smb2_write(chip, chip->base + WI_PWR_OPTIONS_REG, 0);
-	if (rc < 0) {
-		pr_err("Couldn't disable qcom wipower\n");
-		goto out;
-	}
+	// rc = smb2_write(chip, chip->base + WI_PWR_OPTIONS_REG, 0);
+	// if (rc < 0) {
+	// 	pr_err("Couldn't disable qcom wipower\n");
+	// 	goto out;
+	// }
 
 	/* aicl rerun time */
 	rc = smb2_write_masked(chip, chip->base + AICL_RERUN_TIME_CFG_REG,
@@ -931,23 +961,23 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	}
 
 	/* increase VCONN softstart */
-	rc = smb2_write_masked(chip, chip->base + TYPE_C_CFG_2_REG,
-			VCONN_SOFTSTART_CFG_MASK, VCONN_SOFTSTART_CFG_MASK);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't increase VCONN softstart rc = %d\n",
-			rc);
-		goto out;
-	}
+	// rc = smb2_write_masked(chip, chip->base + TYPE_C_CFG_2_REG,
+	// 		VCONN_SOFTSTART_CFG_MASK, VCONN_SOFTSTART_CFG_MASK);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't increase VCONN softstart rc = %d\n",
+	// 		rc);
+	// 	goto out;
+	// }
 
 	/* disable try.SINK mode and legacy cable IRQs */
 	// Maybe we do want to enable try sink mode?
-	rc = smb2_write_masked(chip, chip->base + TYPE_C_CFG_3_REG,
-		/*EN_TRYSINK_MODE_BIT | */ TYPEC_NONCOMPLIANT_LEGACY_CABLE_INT_EN_BIT |
-		TYPEC_LEGACY_CABLE_INT_EN_BIT, 0);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't set Type-C config rc = %d\n", rc);
-		goto out;
-	}
+	// rc = smb2_write_masked(chip, chip->base + TYPE_C_CFG_3_REG,
+	// 	/*EN_TRYSINK_MODE_BIT | */ TYPEC_NONCOMPLIANT_LEGACY_CABLE_INT_EN_BIT |
+	// 	TYPEC_LEGACY_CABLE_INT_EN_BIT, 0);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't set Type-C config rc = %d\n", rc);
+	// 	goto out;
+	//}
 
 	/* Set CC threshold to 1.6 V in source mode */
 	// rc = smb2_write_masked(chip, chip->base + TYPE_C_CFG_2_REG, DFP_CC_1P4V_OR_1P6V_BIT,
@@ -979,47 +1009,47 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	/*
 	 * allow DRP.DFP time to exceed by tPDdebounce time.
 	 */
-	rc = smb2_write_masked(chip, chip->base + TAPER_TIMER_SEL_CFG_REG,
-				TYPEC_DRP_DFP_TIME_CFG_BIT,
-				TYPEC_DRP_DFP_TIME_CFG_BIT);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't configure DRP.DFP time rc = %d\n",
-			rc);
-		goto out;
-	}
-
-	// This register is modified on USB connect, but on disconnect we want to
-	// write back the default.
-	rc = smb2_read(chip, &chip->float_cfg, chip->base + USBIN_OPTIONS_2_CFG_REG);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't read float charger options rc = %d\n",
-			rc);
-		goto out;
-	}
-
-	// need to find out what this is, soc might be state of charge?
-	// The flag is called "auto_recharge_soc" and is set by default
-	// rc = smb2_write_masked(chip, chip->base + FG_UPDATE_CFG_2_SEL_REG,
-	// 	SOC_LT_CHG_RECHARGE_THRESH_SEL_BIT |
-	// 	VBT_LT_CHG_RECHARGE_THRESH_SEL_BIT,
-	// 	VBT_LT_CHG_RECHARGE_THRESH_SEL_BIT); // Or SOC_LT_CHG_RECHARGE_THRESH_SEL_BIT ?
+	// rc = smb2_write_masked(chip, chip->base + TAPER_TIMER_SEL_CFG_REG,
+	// 			TYPEC_DRP_DFP_TIME_CFG_BIT,
+	// 			TYPEC_DRP_DFP_TIME_CFG_BIT);
 	// if (rc < 0) {
-	// 	dev_err(chip->dev, "Couldn't configure FG_UPDATE_CFG2_SEL_REG rc = %d\n",
+	// 	dev_err(chip->dev, "Couldn't configure DRP.DFP time rc = %d\n",
 	// 		rc);
 	// 	goto out;
 	// }
 
-	// We can disable HW jeita but, we don't
-	rc = smb2_write_masked(chip, chip->base + JEITA_EN_CFG_REG,
-		JEITA_EN_COLD_SL_FCV_BIT
-		| JEITA_EN_HOT_SL_FCV_BIT
-		| JEITA_EN_HOT_SL_CCC_BIT
-		| JEITA_EN_COLD_SL_CCC_BIT, 0);
+	// This register is modified on USB connect, but on disconnect we want to
+	// write back the default.
+	// rc = smb2_read(chip, &chip->float_cfg, chip->base + USBIN_OPTIONS_2_CFG_REG);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't read float charger options rc = %d\n",
+	// 		rc);
+	// 	goto out;
+	// }
+
+	// need to find out what this is, soc might be state of charge?
+	// The flag is called "auto_recharge_soc" and is set by default
+	rc = smb2_write_masked(chip, chip->base + FG_UPDATE_CFG_2_SEL_REG,
+		SOC_LT_CHG_RECHARGE_THRESH_SEL_BIT |
+		VBT_LT_CHG_RECHARGE_THRESH_SEL_BIT,
+		VBT_LT_CHG_RECHARGE_THRESH_SEL_BIT); // Or SOC_LT_CHG_RECHARGE_THRESH_SEL_BIT ?
 	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't disable hw jeita rc = %d\n",
+		dev_err(chip->dev, "Couldn't configure FG_UPDATE_CFG2_SEL_REG rc = %d\n",
 			rc);
 		goto out;
 	}
+
+	// We can disable HW jeita but, we don't
+	// rc = smb2_write_masked(chip, chip->base + JEITA_EN_CFG_REG,
+	// 	JEITA_EN_COLD_SL_FCV_BIT
+	// 	| JEITA_EN_HOT_SL_FCV_BIT
+	// 	| JEITA_EN_HOT_SL_CCC_BIT
+	// 	| JEITA_EN_COLD_SL_CCC_BIT, 0);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't disable hw jeita rc = %d\n",
+	// 		rc);
+	// 	goto out;
+	// }
 
 	// Now override the max current :>
 
@@ -1032,10 +1062,10 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 		goto out;
 	}
 
-	val = 1950 * 1000;
 	// Write "charge current limit"
-	rc = smb2_write_masked(chip, chip->base + FAST_CHARGE_CURRENT_CFG_REG,
-		(unsigned char)(val / 25000), FAST_CHARGE_CURRENT_SETTING_MASK);
+	smb2_set_current_limit(chip, 1950 * 1000);
+	rc = smb2_write_masked(chip, chip->base + CMD_APSD_REG,
+		ICL_OVERRIDE_BIT, ICL_OVERRIDE_BIT);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't set fast charge current limit rc = %d\n",
 			rc);
@@ -1043,7 +1073,7 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	}
 
 	// Set max vbat
-	val = 4400 * 1000;
+	val = chip->batt_info.voltage_max_design_uv;
 	rc = smb2_write_masked(chip, chip->base + FLOAT_VOLTAGE_CFG_REG,
 		(unsigned char)(val / 7500), FLOAT_VOLTAGE_SETTING_MASK);
 	if (rc < 0) {
@@ -1052,11 +1082,27 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 		goto out;
 	}
 
+	rc = smb2_read(chip, &blah, chip->base + FLOAT_VOLTAGE_CFG_REG);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't read float voltage cfg rc = %d\n",
+			rc);
+		goto out;
+	}
+	dev_info(chip->dev, "FLOAT_VOLTAGE_CFG_REG = 0x%02x\n", blah);
+
+	rc = smb2_write_masked(chip, chip->base + USBIN_AICL_OPTIONS_CFG_REG,
+		USBIN_AICL_EN_BIT, 0);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't disable AICL rc = %d\n",
+			rc);
+		goto out;
+	}
+
 	/* Disable HVCDP (i'm guessing support for 9/12v chargers?) 
 	  these probably require extra hw on OnePlus devices
 	*/
 	rc = smb2_write_masked(chip, chip->base + USBIN_OPTIONS_1_CFG_REG,
-		0, HVDCP_EN_BIT);
+		HVDCP_EN_BIT, 0);
 	if (rc < 0) {
 		dev_err(chip->dev, "Couldn't disable hvdcp rc = %d\n",
 			rc);
@@ -1080,13 +1126,13 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	}
 	
 	/* Configure charge enable for software control; active high */
-	// rc = smb2_write_masked(chip, chip->base + CHGR_CFG2_REG,
-	// 			 CHG_EN_POLARITY_BIT |
-	// 			 CHG_EN_SRC_BIT, 0);
-	// if (rc < 0) {
-	// 	dev_err(chip->dev, "Couldn't configure charger rc = %d\n", rc);
-	// 	goto out;
-	// }
+	rc = smb2_write_masked(chip, chip->base + CHGR_CFG2_REG,
+				 CHG_EN_POLARITY_BIT |
+				 CHG_EN_SRC_BIT, 0);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't configure charger rc = %d\n", rc);
+		goto out;
+	}
 
 
 	// POST INIT
@@ -1094,7 +1140,7 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	rc = smb2_write_masked(chip, chip->base + TYPE_C_INTRPT_ENB_SOFTWARE_CTRL_REG,
 				 UFP_EN_CMD_BIT, UFP_EN_CMD_BIT);
 	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't configure charger rc = %d\n", rc);
+		dev_err(chip->dev, "Couldn't configure as upstream facing port rc = %d\n", rc);
 		goto out;
 	}
 out:
@@ -1162,6 +1208,12 @@ static int smb2_probe(struct platform_device *pdev)
 	}
 
 	INIT_DELAYED_WORK(&chip->icl_work, smb2_current_limit_work);
+
+	rc = power_supply_get_battery_info(chip->chg_psy, &chip->batt_info);
+	if (rc) {
+		dev_err(&pdev->dev, "Failed to get battery info: %d\n", rc);
+		return rc;
+	}
 
 	rc = smb2_init_hw(chip);
 	if (rc < 0) {
