@@ -111,6 +111,14 @@
 		};
 	};
 
+	battery: battery {
+		compatible = "simple-battery";
+
+		charge-full-design-microamp-hours = <4000000>;
+		voltage-min-design-microvolt = <3400000>;
+		voltage-max-design-microvolt = <4400000>;
+	};
+
 	vreg_s4a_1p8: vreg-s4a-1p8 {
 		compatible = "regulator-fixed";
 		regulator-name = "vreg_s4a_1p8";
@@ -359,9 +367,17 @@
 
 &pmi8998_fg {
 	status = "okay";
-	qcom,max-voltage-uv = <4400000>;
-	qcom,min-voltage-uv = <3700000>;
-	qcom,battery-capacity-ua = <4000000>;
+
+	power-supplies = <&pmi8998_smb2>;
+};
+
+&pmi8998_rradc {
+	status = "okay";
+};
+
+&pmi8998_smb2 {
+	status = "okay";
+	monitored-battery = <&battery>;
 };
 
 &pmi8998_haptics {
