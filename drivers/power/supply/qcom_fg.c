@@ -81,9 +81,13 @@ struct qcom_fg_chip {
 	unsigned int base;
 	struct regmap *regmap;
 	const struct qcom_fg_ops *ops;
+	struct notifier_block nb;
 
 	struct power_supply *batt_psy;
 	struct power_supply_battery_info batt_info;
+	struct power_supply *chg_psy;
+	int status;
+	struct delayed_work status_changed_work;
 
 	struct completion sram_access_granted;
 	struct completion sram_access_revoked;
@@ -804,6 +808,7 @@ static const struct qcom_fg_ops ops_fg_gen3 = {
 };
 
 static enum power_supply_property qcom_fg_props[] = {
+	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_CURRENT_NOW,
@@ -823,11 +828,46 @@ static int qcom_fg_get_property(struct power_supply *psy,
 		union power_supply_propval *val)
 {
 	struct qcom_fg_chip *chip = power_supply_get_drvdata(psy);
-	int ret = 0;
+	int temp, ret = 0;
 
 	dev_dbg(chip->dev, "Getting property: %d", psp);
 
 	switch (psp) {
+	case POWER_SUPPLY_PROP_STATUS:
+		/* Get status from charger if available */
+		if (chip->chg_psy &&
+		    chip->status != POWER_SUPPLY_STATUS_UNKNOWN) {
+			val->intval = chip->status;
+			break;
+		} else {
+			/*
+			 * Fall back to capacity and current-based
+			 * status checking
+			 */
+			ret = chip->ops->get_capacity(chip, &temp);
+			if (ret) {
+				val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
+				break;
+			}
+			if (temp == 100) {
+				val->intval = POWER_SUPPLY_STATUS_FULL;
+				break;
+			}
+
+			ret = chip->ops->get_current(chip, &temp);
+			if (ret) {
+				val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
+				break;
+			}
+			if (temp < 0)
+				val->intval = POWER_SUPPLY_STATUS_CHARGING;
+			else if (temp > 0)
+				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+			else
+				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+		}
+
+		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
 		break;
@@ -1000,6 +1040,51 @@ irqreturn_t qcom_fg_handle_mem_avail(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static void qcom_fg_status_changed_worker(struct work_struct *work)
+{
+	struct qcom_fg_chip *chip = container_of(work, struct qcom_fg_chip,
+						status_changed_work.work);
+
+	power_supply_changed(chip->batt_psy);
+}
+
+static int qcom_fg_notifier_call(struct notifier_block *nb,
+		unsigned long val, void *v)
+{
+	struct qcom_fg_chip *chip = container_of(nb, struct qcom_fg_chip, nb);
+	struct power_supply *psy = v;
+	union power_supply_propval propval;
+	int ret;
+
+	if (psy == chip->chg_psy) {
+		ret = power_supply_get_property(psy,
+				POWER_SUPPLY_PROP_STATUS, &propval);
+		if (ret)
+			chip->status = POWER_SUPPLY_STATUS_UNKNOWN;
+
+		chip->status = propval.intval;
+
+		power_supply_changed(chip->batt_psy);
+
+		if (chip->status == POWER_SUPPLY_STATUS_UNKNOWN) {
+			/*
+			 * REVISIT: Find better solution or remove current-based
+			 * status checking once checking is properly implemented
+			 * in charger drivers
+
+			 * Sometimes it take a while for current to stabilize,
+			 * so signal property change again later to make sure
+			 * current-based status is properly detected.
+			 */
+			cancel_delayed_work_sync(&chip->status_changed_work);
+			schedule_delayed_work(&chip->status_changed_work,
+						msecs_to_jiffies(1000));
+		}
+	}
+
+	return NOTIFY_OK;
+}
+
 static int qcom_fg_probe(struct platform_device *pdev)
 {
 	struct power_supply_config supply_config = {};
@@ -1167,6 +1252,28 @@ static int qcom_fg_probe(struct platform_device *pdev)
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to request soc-delta IRQ: %d\n", ret);
 		return ret;
+	}
+
+	/* Optional: Get charger power supply for status checking */
+	chip->chg_psy = power_supply_get_by_phandle(chip->dev->of_node,
+							"power-supplies");
+	if (IS_ERR(chip->chg_psy)) {
+		ret = PTR_ERR(chip->chg_psy);
+		dev_warn(chip->dev, "Failed to get charger supply: %d\n", ret);
+		chip->chg_psy = NULL;
+	}
+
+	if (chip->chg_psy) {
+		INIT_DELAYED_WORK(&chip->status_changed_work,
+			qcom_fg_status_changed_worker);
+
+		chip->nb.notifier_call = qcom_fg_notifier_call;
+		ret = power_supply_reg_notifier(&chip->nb);
+		if (ret) {
+			dev_err(chip->dev,
+				"Failed to register notifier: %d\n", ret);
+			return ret;
+		}
 	}
 
 	return 0;
