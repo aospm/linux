@@ -364,6 +364,7 @@ static enum power_supply_property smb2_properties[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_STATUS,
+	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_USB_TYPE,
 };
 
@@ -739,6 +740,9 @@ static int smb2_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		error = smb2_get_voltage(chip, &val->intval);
+		break;
+	case POWER_SUPPLY_PROP_ONLINE:
+		error = smb2_get_prop_usb_online(chip, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_STATUS:
 		error = smb2_get_prop_status(chip, &val->intval);
