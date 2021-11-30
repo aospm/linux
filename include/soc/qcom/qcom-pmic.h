@@ -34,6 +34,12 @@
 #define PM8150C_SUBTYPE		0x26
 #define SMB2351_SUBTYPE		0x29
 
+#define PMI8998_FAB_ID_SMIC	0x11
+#define PMI8998_FAB_ID_GF	0x30
+
+#define PM660_FAB_ID_GF		0x0
+#define PM660_FAB_ID_TSMC	0x2
+#define PM660_FAB_ID_MX		0x3
 
 struct qcom_spmi_pmic {
 	unsigned int type;
@@ -41,6 +47,7 @@ struct qcom_spmi_pmic {
 	unsigned int major;
 	unsigned int minor;
 	unsigned int rev2;
+	unsigned int fab_id;
 	char *name;
 };
 
