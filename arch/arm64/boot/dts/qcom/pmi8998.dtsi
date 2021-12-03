@@ -51,10 +51,8 @@
 		};
 
 		pmi8998_rradc: rradc@4500 {
-			compatible = "qcom,rradc";
+			compatible = "qcom,pmi8998-rradc";
 			reg = <0x4500>;
-			#address-cells = <1>;
-			#size-cells = <0>;
 			#io-channel-cells = <1>;
 
 			status = "disabled";
