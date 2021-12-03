@@ -25,6 +25,7 @@
 #include <linux/interrupt.h>
 #include <linux/spmi.h>
 #include <linux/workqueue.h>
+#include <soc/qcom/qcom-pmic.h>
 
 #include "qcom_spmi_pmic.h"
 
@@ -589,12 +590,36 @@ static inline int smb2_get_current_limit(struct smb2_chip *chip, unsigned int *v
 
 static inline int smb2_set_current_limit(struct smb2_chip *chip, unsigned int val) {
 	unsigned char val_raw;
+	int rc;
 	if (val > 4800000) {
 		dev_err(chip->dev, "Can't set current limit higher than 4800000uA");
 		return -EINVAL;
 	}
 	val_raw = val / 25000;
-	return smb2_write(chip, chip->base + USBIN_CURRENT_LIMIT_CFG_REG, val_raw);
+	rc = smb2_write(chip, chip->base + USBIN_CURRENT_LIMIT_CFG_REG, val_raw);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't write current limit rc = %d\n",
+			rc);
+		return rc;
+	}
+	/* enforce override */
+	rc = smb2_write_masked(chip, chip->base + USBIN_ICL_OPTIONS_REG,
+		USBIN_MODE_CHG_BIT, USBIN_MODE_CHG_BIT);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't override the current limit rc = %d\n",
+			rc);
+		return rc;
+	}
+
+	rc = smb2_write_masked(chip, chip->base + USBIN_LOAD_CFG_REG,
+				ICL_OVERRIDE_AFTER_APSD_BIT,
+				ICL_OVERRIDE_AFTER_APSD_BIT);
+	if (rc < 0) {
+		dev_err(chip->dev, "Couldn't override ICL rc = %d\n", rc);
+		return rc;
+	}
+
+	return 0;
 }
 
 // This currently assumes we are UFP
@@ -685,7 +710,7 @@ int smb2_get_current(struct smb2_chip *chip, int *val) {
 
 	if (!chip->iio.usbin_i_chan ||
 		PTR_ERR(chip->iio.usbin_i_chan) == -EPROBE_DEFER)
-		chip->iio.usbin_i_chan = iio_channel_get(chip->dev, "usbin_i");
+		chip->iio.usbin_i_chan = devm_iio_channel_get(chip->dev, "usbin_i");
 
 	if (IS_ERR(chip->iio.usbin_i_chan)) {
 		dev_err(chip->dev, "Failed to get usbin_i_chan, err = %li", PTR_ERR(chip->iio.usbin_i_chan));
@@ -708,7 +733,7 @@ int smb2_get_voltage(struct smb2_chip *chip, int *val) {
 
 	if (!chip->iio.usbin_v_chan ||
 		PTR_ERR(chip->iio.usbin_v_chan) == -EPROBE_DEFER)
-		chip->iio.usbin_v_chan = iio_channel_get(chip->dev, "usbin_v");
+		chip->iio.usbin_v_chan = devm_iio_channel_get(chip->dev, "usbin_v");
 	if (IS_ERR(chip->iio.usbin_v_chan))
 		return PTR_ERR(chip->iio.usbin_v_chan);
 
@@ -798,8 +823,6 @@ irqreturn_t smb2_handle_usb_plugin(int irq, void *data){
 	int rc;
 	unsigned char intrt_stat; 
 	unsigned char usbc_stat;
-	unsigned char icl_options;
-	union power_supply_propval psval;
 
 	rc = smb2_read(chip, &intrt_stat, chip->base + INT_RT_STS);
 	if (rc < 0){
@@ -1058,13 +1081,13 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	// Now override the max current :>
 
 	/* enforce override */
-	rc = smb2_write_masked(chip, chip->base + USBIN_ICL_OPTIONS_REG,
-		USBIN_MODE_CHG_BIT, USBIN_MODE_CHG_BIT);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't override the current limit rc = %d\n",
-			rc);
-		goto out;
-	}
+	// rc = smb2_write_masked(chip, chip->base + USBIN_ICL_OPTIONS_REG,
+	// 	USBIN_MODE_CHG_BIT, USBIN_MODE_CHG_BIT);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't override the current limit rc = %d\n",
+	// 		rc);
+	// 	goto out;
+	// }
 
 	// Write "charge current limit"
 	smb2_set_current_limit(chip, 1950 * 1000);
@@ -1121,13 +1144,13 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 		goto out;
 	}
 	
-	rc = smb2_write_masked(chip, chip->base + USBIN_LOAD_CFG_REG,
-				ICL_OVERRIDE_AFTER_APSD_BIT,
-				ICL_OVERRIDE_AFTER_APSD_BIT);
-	if (rc < 0) {
-		dev_err(chip->dev, "Couldn't override ICL rc = %d\n", rc);
-		goto out;
-	}
+	// rc = smb2_write_masked(chip, chip->base + USBIN_LOAD_CFG_REG,
+	// 			ICL_OVERRIDE_AFTER_APSD_BIT,
+	// 			ICL_OVERRIDE_AFTER_APSD_BIT);
+	// if (rc < 0) {
+	// 	dev_err(chip->dev, "Couldn't override ICL rc = %d\n", rc);
+	// 	goto out;
+	// }
 	
 	/* Configure charge enable for software control; active high */
 	rc = smb2_write_masked(chip, chip->base + CHGR_CFG2_REG,
@@ -1194,6 +1217,8 @@ static int smb2_probe(struct platform_device *pdev)
 	}
 
 	sdev = to_spmi_device(pdev->dev.parent);
+	chip->pmic = (struct qcom_spmi_pmic*)spmi_device_get_drvdata(sdev);
+	pmic_print_info(chip->dev, chip->pmic);
 
 	platform_set_drvdata(pdev, chip);
 
