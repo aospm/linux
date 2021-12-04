@@ -395,7 +395,7 @@ static int smb2_read(struct smb2_chip *chip, unsigned char *val, unsigned short 
 	if (rc >= 0)
 		*val = (unsigned char)temp;
 
-	dev_info(chip->dev, "%s: Read val = 0x%x from addr = 0x%x", __func__, temp, addr);
+	//dev_info(chip->dev, "%s: Read val = 0x%x from addr = 0x%x", __func__, temp, addr);
 	return rc;
 }
 
@@ -417,7 +417,7 @@ static int smb2_write(struct smb2_chip *chip, unsigned short addr, unsigned char
 	if ((addr & 0xff00) == 0)
 			return -EINVAL;
 
-	dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x", __func__, val, addr);
+	//dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x", __func__, val, addr);
 
 	if (sec_access) {
 		ret = regmap_bulk_write(chip->regmap,
@@ -448,8 +448,8 @@ static int smb2_write_masked(struct smb2_chip *chip, unsigned short addr, unsign
 	if ((addr & 0xff00) == 0)
 			return -EINVAL;
 
-	dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x, mask = 0x%x",
-		__func__, val, addr, mask);
+	//dev_info(chip->dev, "%s: Writing val = 0x%x to addr = 0x%x, mask = 0x%x",
+	//	__func__, val, addr, mask);
 
 	if (sec_access) {
 		ret = regmap_bulk_write(chip->regmap,
@@ -484,7 +484,7 @@ static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int* val) {
 		dev_err(chip->dev, "Failed to read apsd status, rc = %d", rc);
 		return rc;
 	}
-	dev_info(chip->dev, "APSD_STATUS = 0x%02x\n", apsd_stat);
+	//dev_info(chip->dev, "APSD_STATUS = 0x%02x\n", apsd_stat);
 	if (!(apsd_stat & APSD_DTC_STATUS_DONE_BIT)) {
 		dev_err(chip->dev, "Apsd not read");
 		return -EAGAIN;
@@ -524,7 +524,7 @@ int smb2_get_prop_usb_online(struct smb2_chip *chip, int *val) {
 		return rc;
 	}
 
-	dev_info(chip->dev, "USB POWER_PATH_STATUS : 0x%02x\n", stat);
+	//dev_info(chip->dev, "USB POWER_PATH_STATUS : 0x%02x\n", stat);
 	*val = (stat & P_PATH_USE_USBIN_BIT)
 		&& (stat & P_PATH_VALID_INPUT_POWER_SOURCE_STS_BIT);
 	return rc;
@@ -541,7 +541,7 @@ int smb2_get_prop_status(struct smb2_chip *chip, int *val) {
 		dev_err(chip->dev, "Couldn't get usb online property rc = %d\n", rc);
 		return rc;
 	}
-	dev_info(chip->dev, "USB ONLINE val : %d\n", usb_online_val);
+	//dev_info(chip->dev, "USB ONLINE val : %d\n", usb_online_val);
 	usb_online = (bool)usb_online_val;
 
 	if (!usb_online) {
@@ -556,7 +556,7 @@ int smb2_get_prop_status(struct smb2_chip *chip, int *val) {
 	}
 
 	stat = stat & BATTERY_CHARGER_STATUS_MASK;
-	dev_info(chip->dev, "Charging status : %d!\n", stat);
+	//dev_info(chip->dev, "Charging status : %d!\n", stat);
 
 	switch (stat) {
 		case TRICKLE_CHARGE:
@@ -639,7 +639,7 @@ int smb2_get_current_max(struct smb2_chip *chip,
 		dev_err(chip->dev, "Couldn't get settled ICL rc=%d\n", rc);
 		return rc;
 	}
-	dev_info(chip->dev, "apsd charger type = %d, hw current limit = %u", charger_type, hw_current_limit);
+	//dev_info(chip->dev, "apsd charger type = %d, hw current limit = %u", charger_type, hw_current_limit);
 
 	/* QC 2.0/3.0 adapter */
 	// if (apsd_result->bit & (QC_3P0_BIT | QC_2P0_BIT)) {
@@ -649,23 +649,23 @@ int smb2_get_current_max(struct smb2_chip *chip,
 
 	switch (charger_type) {
 	case POWER_SUPPLY_USB_TYPE_CDP:
-		dev_info(chip->dev, "%s(): charger_type = %s", __func__,
-		"POWER_SUPPLY_USB_TYPE_CDP");
+		//dev_info(chip->dev, "%s(): charger_type = %s", __func__,
+		//"POWER_SUPPLY_USB_TYPE_CDP");
 		current_ua = CDP_CURRENT_UA;
 		break;
 	case POWER_SUPPLY_USB_TYPE_DCP:
-		dev_info(chip->dev, "%s(): charger_type = %s", __func__,
-		"POWER_SUPPLY_USB_TYPE_DCP");
+		//dev_info(chip->dev, "%s(): charger_type = %s", __func__,
+		//"POWER_SUPPLY_USB_TYPE_DCP");
 		current_ua = DCP_CURRENT_UA;
 		break;
 	case POWER_SUPPLY_USB_TYPE_SDP:
-		dev_info(chip->dev, "%s(): charger_type = %s", __func__,
-		"POWER_SUPPLY_USB_TYPE_SDP");
+		//dev_info(chip->dev, "%s(): charger_type = %s", __func__,
+		//"POWER_SUPPLY_USB_TYPE_SDP");
 		current_ua = SDP_CURRENT_UA;
 		break;
 	default:
-		dev_info(chip->dev, "%s(): charger_type = %s", __func__,
-		"default");
+		//dev_info(chip->dev, "%s(): charger_type = %s", __func__,
+		//"default");
 		current_ua = 0;
 		break;
 	}
@@ -693,7 +693,7 @@ int smb2_get_current(struct smb2_chip *chip, int *val) {
 	}
 
 	rc = iio_read_channel_processed(chip->iio.usbin_i_chan, val);
-	dev_info(chip->dev, "%s(): iio_read_channel_processed rc = %d, val = %d", __func__, rc, *val);
+	//dev_info(chip->dev, "%s(): iio_read_channel_processed rc = %d, val = %d", __func__, rc, *val);
 	return rc;
 }
 
@@ -723,7 +723,7 @@ static int smb2_get_property(struct power_supply *psy,
 	struct smb2_chip *chip = power_supply_get_drvdata(psy);
 	int error = 0;
 
-	dev_info(chip->dev, "Getting property: %d", psp);
+	//dev_info(chip->dev, "Getting property: %d", psp);
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_MANUFACTURER:
@@ -818,7 +818,7 @@ irqreturn_t smb2_handle_usb_plugin(int irq, void *data){
 
 	}
 
-	dev_info(chip->dev, "USB IRQ: %s\n", chip->usb_present ? "attached" : "detached");
+	//dev_info(chip->dev, "USB IRQ: %s\n", chip->usb_present ? "attached" : "detached");
 	power_supply_changed(chip->chg_psy);
 
 	if (chip->usb_present) {
@@ -1092,7 +1092,7 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 			rc);
 		goto out;
 	}
-	dev_info(chip->dev, "FLOAT_VOLTAGE_CFG_REG = 0x%02x\n", blah);
+	//dev_info(chip->dev, "FLOAT_VOLTAGE_CFG_REG = 0x%02x\n", blah);
 
 	rc = smb2_write_masked(chip, chip->base + USBIN_AICL_OPTIONS_CFG_REG,
 		USBIN_AICL_EN_BIT, 0);
@@ -1181,7 +1181,7 @@ static int smb2_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	chip->base = be32_to_cpu(*prop_addr);
-	dev_info(chip->dev, "chip->base = 0x%x", chip->base);
+	//dev_info(chip->dev, "chip->base = 0x%x", chip->base);
 
 	supply_config.drv_data = chip;
 	supply_config.of_node = pdev->dev.of_node;
