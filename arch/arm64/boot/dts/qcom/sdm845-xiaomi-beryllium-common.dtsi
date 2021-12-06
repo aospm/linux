@@ -371,6 +371,14 @@
 	qcom,cabc;
 };
 
+
+&pmi8998_fg {
+	status = "okay";
+
+	power-supplies = <&pmi8998_charger>;
+	monitored-battery = <&battery>;
+};
+
 &pmi8998_charger {
 	status = "okay";
 	monitored-battery = <&battery>;
