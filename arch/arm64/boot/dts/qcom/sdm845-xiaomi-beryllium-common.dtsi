@@ -297,6 +297,12 @@
 	firmware-name = "qcom/sdm845/mba.mbn", "qcom/sdm845/modem.mdt";
 };
 
+&ipa {
+	status = "okay";
+	memory-region = <&ipa_fw_mem>;
+	firmware-name = "qcom/sdm845/beryllium/ipa_fws.mbn";
+};
+
 &pm8998_gpio {
 	vol_up_pin_a: vol-up-active {
 		pins = "gpio6";
