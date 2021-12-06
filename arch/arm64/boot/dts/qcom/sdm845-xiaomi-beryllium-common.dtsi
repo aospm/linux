@@ -122,7 +122,7 @@
 
 &adsp_pas {
 	status = "okay";
-	firmware-name = "qcom/sdm845/adsp.mdt";
+	firmware-name = "qcom/sdm845/beryllium/adsp.mbn";
 };
 
 &apps_rsc {
@@ -209,7 +209,7 @@
 
 &cdsp_pas {
 	status = "okay";
-	firmware-name = "qcom/sdm845/cdsp.mdt";
+	firmware-name = "qcom/sdm845/beryllium/cdsp.mbn";
 };
 
 &dsi0 {
@@ -271,7 +271,7 @@
 
 	zap-shader {
 		memory-region = <&gpu_mem>;
-		firmware-name = "qcom/sdm845/a630_zap.mbn";
+		firmware-name = "qcom/sdm845/beryllium/a630_zap.mbn";
 	};
 };
 
@@ -298,7 +298,7 @@
 
 &mss_pil {
 	status = "okay";
-	firmware-name = "qcom/sdm845/mba.mbn", "qcom/sdm845/modem.mdt";
+	firmware-name = "qcom/sdm845/beryllium/mba.mbn", "qcom/sdm845/beryllium/modem.mbn";
 };
 
 &ipa {
