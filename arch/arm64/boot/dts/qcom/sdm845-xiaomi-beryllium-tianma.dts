@@ -8,3 +8,22 @@
 	status = "okay";
 	compatible = "tianma,fhd-video";
 };
+
+&i2c14 {
+	status = "okay";
+
+	dmas =  <&gpi_dma1 0 6 QCOM_GPI_I2C>,
+		<&gpi_dma1 1 6 QCOM_GPI_I2C>;
+	dma-names = "tx", "rx";
+
+	touchscreen: novatek@62 {
+		compatible = "novatek,nt36525"; /* Should be novatek,nt36672A instead #TODO */
+		reg = <0x62>;
+		vdd-supply = <&vreg_l14a_1p8>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <31 IRQ_TYPE_EDGE_RISING>;
+		reset-gpio = <&tlmm 32 0x00 /* GPIO_ACTIVE_HIGH */ >;
+	};
+
+};
+
