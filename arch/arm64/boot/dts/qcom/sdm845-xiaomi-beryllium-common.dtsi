@@ -314,13 +314,6 @@
 	firmware-name = "qcom/sdm845/beryllium/ipa_fws.mbn";
 };
 
-&ipa {
-	status = "okay";
-	memory-region = <&ipa_fw_mem>;
-	firmware-name = "qcom/sdm845/beryllium/ipa_fws.mbn";
-};
-
-
 &i2c5 {
 	#dma-cells = <3>;
 	status="okay";
