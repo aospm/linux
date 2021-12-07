@@ -816,6 +816,7 @@ static int rradc_read_raw(struct iio_dev *indio_dev,
 	}
 
 	chan = &chip->chans[chan_spec->address];
+	ret = rradc_do_conversion(chip, chan_spec->address, &adc_code);
 	if (ret < 0)
 		return ret;
 	dev_info(chip->dev, "adc_code:%d\n", adc_code);
@@ -961,6 +962,8 @@ static int rradc_probe(struct platform_device *pdev)
 	struct spmi_device *sdev;
 	int ret = 0, i;
 
+	dev_info(dev, "%s()\n", __func__);
+
 	indio_dev = devm_iio_device_alloc(dev, sizeof(*chip));
 	if (!indio_dev)
 		return -ENOMEM;
@@ -984,6 +987,8 @@ static int rradc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	dev_info(dev, "rradc base = 0x%x\n", chip->base);
+
 	chip->batt_id_delay = -EINVAL;
 	ret = of_property_read_u32(node, "qcom,batt-id-delay-ms",
 			&chip->batt_id_delay);
@@ -998,6 +1003,8 @@ static int rradc_probe(struct platform_device *pdev)
 			chip->batt_id_delay = i;
 	}
 
+	dev_info(dev, "batt_id_delay = %d\n", chip->batt_id_delay);
+
 	sdev = to_spmi_device(pdev->dev.parent);
 	chip->pmic = (struct qcom_spmi_pmic*)spmi_device_get_drvdata(sdev);
 	pmic_print_info(chip->dev, chip->pmic);
@@ -1008,6 +1015,8 @@ static int rradc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	dev_info(dev, "rradc_probe() success\n");
+
 	indio_dev->dev.parent = dev;
 	indio_dev->dev.of_node = node;
 	indio_dev->name = pdev->name;
@@ -1017,6 +1026,8 @@ static int rradc_probe(struct platform_device *pdev)
 	indio_dev->num_channels = chip->nchannels;
 
 	ret = devm_iio_device_register(dev, indio_dev);
+
+	dev_info(dev, "rradc_probe() registered iio device\n");
 	return ret;
 }
 

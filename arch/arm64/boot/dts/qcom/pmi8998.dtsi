@@ -51,7 +51,7 @@
 		};
 
 		pmi8998_rradc: rradc@4500 {
-			compatible = "qcom,rradc";
+			compatible = "qcom,pmi8998-rradc";
 			reg = <0x4500>;
 			#io-channel-cells = <1>;
 
