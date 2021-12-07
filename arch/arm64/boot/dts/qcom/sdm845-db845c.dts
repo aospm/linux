@@ -603,6 +603,10 @@
 	status = "okay";
 };
 
+&pmi8998_smb2 {
+	status = "okay";
+};
+
 /* QUAT I2S Uses 4 I2S SD Lines for audio on LT9611 HDMI Bridge */
 &q6afedai {
 	qi2s@22 {
