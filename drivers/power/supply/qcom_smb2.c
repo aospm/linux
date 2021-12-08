@@ -486,7 +486,7 @@ static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int* val) {
 	}
 	//dev_info(chip->dev, "APSD_STATUS = 0x%02x\n", apsd_stat);
 	if (!(apsd_stat & APSD_DTC_STATUS_DONE_BIT)) {
-		dev_err(chip->dev, "Apsd not read");
+		dev_err(chip->dev, "Apsd not ready");
 		return -EAGAIN;
 	}
 
@@ -605,15 +605,20 @@ int smb2_get_current_max(struct smb2_chip *chip,
 	unsigned int charger_type, hw_current_limit, current_ua;
 	bool non_compliant;
 	unsigned char val;
+	int usb_online;
 	int count;
+
+	smb2_get_prop_usb_online(chip, &usb_online);
+
+	if (usb_online == 0) { // USB is not online so just get the programmed limit
+		smb2_get_current_limit(chip, max_current);
+		return 0;
+	}
 
 	for (count = 0; count < 10; count++) {
 		rc = smb2_apsd_get_charger_type(chip, &charger_type);
-		if (rc < 0) {
-			dev_err(chip->dev, "Failed to read APSD, rc=%d", rc);
-		} else {
+		if (rc >= 0)
 			break;
-		}
 		msleep(100);
 	}
 
