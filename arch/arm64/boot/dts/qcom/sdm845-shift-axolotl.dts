@@ -15,6 +15,8 @@
 / {
 	model = "SHIFT SHIFT6mq";
 	compatible = "shift,axolotl", "qcom,sdm845";
+	qcom,msm-id = <321 0x20001>;
+	qcom,board-id = <11 0>;
 
 	aliases {
 		display0 = &framebuffer0;
@@ -26,7 +28,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		stdout-path = "display0";
+		stdout-path = "serial0";
 
 		/* Use framebuffer setup by the bootloader. */
 		framebuffer0: framebuffer@9d400000 {
@@ -415,8 +417,7 @@
 		status = "okay";
 		reg = <0>;
 		vdda-supply = <&vreg_l14a_1p88>;
-		// Probably not this supply, lol need schematics
-		vdd3p3-supply = <&vreg_l23a_3p3>;
+		vdd3p3-supply = <&vreg_l28a_3p0>;
 
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -754,15 +755,14 @@
 	firmware-name = "qcom/sdm845/axolotl/venus.mbn";
 };
 
-/*
- * Wifi crashes so disable it for now.
- */
 &wifi {
-	status = "disabled";
+	status = "okay";
 
 	vdd-0.8-cx-mx-supply = <&vreg_l5a_0p8>;
 	vdd-1.3-rfa-supply = <&vreg_l17a_1p3>;
 	vdd-1.8-xo-supply = <&vreg_l7a_1p8>;
 	vdd-3.3-ch0-supply = <&vreg_l25a_3p3>;
 	vdd-3.3-ch1-supply = <&vreg_l23a_3p3>;
+
+	qcom,snoc-host-cap-8bit-quirk;
 };
