@@ -346,7 +346,7 @@ struct smb2_chip {
 	struct mutex lock;
 	struct qcom_spmi_pmic *pmic;
 	struct delayed_work icl_work; // Current limit work
-	struct power_supply_battery_info batt_info;
+	struct power_supply_battery_info *batt_info;
 
 	struct smb_iio iio;
 
@@ -1082,7 +1082,7 @@ static int smb2_init_hw(struct smb2_chip *chip) {
 	}
 
 	// Set max vbat
-	val = chip->batt_info.voltage_max_design_uv;
+	val = chip->batt_info->voltage_max_design_uv;
 	rc = smb2_write_masked(chip, chip->base + FLOAT_VOLTAGE_CFG_REG,
 		(unsigned char)(val / 7500), FLOAT_VOLTAGE_SETTING_MASK);
 	if (rc < 0) {
@@ -1237,6 +1237,8 @@ static int smb2_remove(struct platform_device *pdev)
 {
 	struct smb2_chip *chip = platform_get_drvdata(pdev);
 	cancel_delayed_work(&chip->icl_work);
+
+	power_supply_put_battery_info(chip->chg_psy, chip->batt_info);
 	return 0;
 }
 
