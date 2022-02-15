@@ -247,8 +247,10 @@ struct msm_gpu {
 
 	struct msm_gpu_state *crashstate;
 
-	/* Enable clamping to idle freq when inactive: */
-	bool clamp_to_idle_no_delay;
+	/* Minimum amount of time the GPU has to be active for
+	   before it can idle, copied from struct adreno_info: */
+#define DRM_MSM_GPU_MIN_ACTIVE_TIME_DEFAULT 100 /* ms, 2x devfreq polling time */
+	unsigned int min_active_time;
 
 	/* True if the hardware supports expanded apriv (a650 and newer) */
 	bool hw_apriv;

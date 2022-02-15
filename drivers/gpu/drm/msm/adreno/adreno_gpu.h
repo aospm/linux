@@ -70,6 +70,9 @@ struct adreno_info {
 	const char *zapfw;
 	u32 inactive_period;
 	const struct adreno_reglist *hwcg;
+	/* Minimum amount of time the GPU has to be active for
+	   before it can idle. */
+	unsigned int min_active_time;
 };
 
 const struct adreno_info *adreno_info(struct adreno_rev rev);
