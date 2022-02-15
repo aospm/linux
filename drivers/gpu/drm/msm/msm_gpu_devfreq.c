@@ -242,11 +242,23 @@ static void msm_devfreq_idle_work(struct kthread_work *work)
 	struct msm_gpu_devfreq *df = container_of(work,
 			struct msm_gpu_devfreq, idle_work.work);
 	struct msm_gpu *gpu = container_of(df, struct msm_gpu, devfreq);
+	unsigned int idle_time = ktime_to_ms(ktime_sub(ktime_get(), df->idle_time));
+
+	/*
+	 * a630 has a bug where rapidly switching between idle and active
+	 * causes GPU instability so limit how often it can idle.
+	 */
+	if (!gpu->clamp_to_idle_no_delay && idle_time < 100) {
+		//dev_info(&gpu->pdev->dev,
+		//	"Not idling GPU, too soon since last idle\n");
+		return;
+	}
+
+	//dev_info(&gpu->pdev->dev, "Idling GPU, was active for %u ms\n", idle_time);
 
 	df->idle_time = ktime_get();
 
-	if (gpu->clamp_to_idle)
-		dev_pm_qos_update_request(&df->idle_freq, 0);
+	dev_pm_qos_update_request(&df->idle_freq, 0);
 }
 
 void msm_devfreq_idle(struct msm_gpu *gpu)

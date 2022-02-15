@@ -248,7 +248,7 @@ struct msm_gpu {
 	struct msm_gpu_state *crashstate;
 
 	/* Enable clamping to idle freq when inactive: */
-	bool clamp_to_idle;
+	bool clamp_to_idle_no_delay;
 
 	/* True if the hardware supports expanded apriv (a650 and newer) */
 	bool hw_apriv;

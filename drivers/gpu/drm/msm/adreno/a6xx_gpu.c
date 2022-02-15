@@ -1848,7 +1848,7 @@ struct msm_gpu *a6xx_gpu_init(struct drm_device *dev)
 	 * to cause power supply issues:
 	 */
 	if (info && (info->revn == 618))
-		gpu->clamp_to_idle = true;
+		gpu->clamp_to_idle_no_delay = true;
 
 	a6xx_llc_slices_init(pdev, a6xx_gpu);
 
