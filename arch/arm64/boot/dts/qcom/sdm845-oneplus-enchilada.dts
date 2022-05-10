@@ -50,9 +50,6 @@
 	max98927_codec: max98927@3a {
 		#sound-dai-cells = <1>;
 		compatible = "maxim,max98927";
-		reset-gpios = <&tlmm 69 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&speaker_reset_pin>;
 		reg = <0x3a>;
 		vmon-slot-no = <1>;
 		imon-slot-no = <0>;
@@ -71,6 +68,14 @@
 		codec {
 			sound-dai = <&max98927_codec 0>;
 		};
+	};
+};
+
+&tlmm {
+	speaker-en-gpio {
+		gpio-hog;
+		gpios = <69 GPIO_ACTIVE_HIGH>;
+		output-high;
 	};
 };
 

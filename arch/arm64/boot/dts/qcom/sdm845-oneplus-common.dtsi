@@ -774,15 +774,6 @@
 			input-enable;
 		};
 	};
-
-	speaker_reset_pin: speaker-rst-gpio {
-		mux {
-			pins = "gpio69";
-			function = "gpio";
-			drive-strength = <2>;
-			output-high;
-		};
-	};
 };
 
 &venus {
