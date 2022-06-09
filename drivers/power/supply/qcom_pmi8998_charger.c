@@ -342,6 +342,7 @@
 #define STAT_FUNCTION_CFG_BIT				BIT(1)
 #define STAT_IRQ_PULSING_EN_BIT				BIT(0)
 
+
 #define USBIN_CURRENT_25MA				25000
 #define USBIN_CURRENT_100MA				100000
 #define USBIN_CURRENT_150MA				150000
@@ -923,11 +924,13 @@ static int smb2_init_hw(struct smb2_chip *chip)
 	return 0;
 }
 
+#define N_IRQS 4
+
 static int smb2_probe(struct platform_device *pdev)
 {
 	struct power_supply_config supply_config = {};
 	struct smb2_chip *chip;
-	int rc, irq;
+	int rc, irq[N_IRQS];
 
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
@@ -948,56 +951,56 @@ static int smb2_probe(struct platform_device *pdev)
 				     "Couldn't read base address\n");
 	}
 
-	irq = of_irq_get_byname(pdev->dev.of_node, "bat-ov");
-	if (irq < 0) {
-		return dev_err_probe(chip->dev, irq,
+	irq[0] = of_irq_get_byname(pdev->dev.of_node, "bat-ov");
+	if (irq[0] < 0) {
+		return dev_err_probe(chip->dev, irq[0],
 				     "Couldn't get irq bat-ov byname\n");
 	}
 
-	rc = devm_request_threaded_irq(chip->dev, irq, NULL,
-				       smb2_handle_batt_overvoltage, IRQF_ONESHOT,
+	rc = devm_request_threaded_irq(chip->dev, irq[0], NULL,
+				       smb2_handle_batt_overvoltage, IRQF_ONESHOT | IRQF_NO_AUTOEN,
 				       "bat-ov", chip);
-	if (irq < 0)
-		return dev_err_probe(chip->dev, irq,
+	if (rc < 0)
+		return dev_err_probe(chip->dev, irq[0],
 				     "Couldn't get irq bat-ov byname\n");
 
-	irq = of_irq_get_byname(pdev->dev.of_node, "usb-plugin");
-	if (irq < 0)
-		return dev_err_probe(chip->dev, irq,
+	irq[1] = of_irq_get_byname(pdev->dev.of_node, "usb-plugin");
+	if (irq[1] < 0)
+		return dev_err_probe(chip->dev, irq[1],
 				     "Couldn't get irq usb-plugin byname\n");
 
-	rc = devm_request_threaded_irq(chip->dev, irq, NULL,
-				       smb2_handle_usb_plugin, IRQF_ONESHOT,
+	rc = devm_request_threaded_irq(chip->dev, irq[1], NULL,
+				       smb2_handle_usb_plugin, IRQF_ONESHOT | IRQF_NO_AUTOEN,
 				       "usb-plugin", chip);
-	if (irq < 0)
-		return dev_err_probe(chip->dev, irq,
+	if (rc < 0)
+		return dev_err_probe(chip->dev, irq[1],
 			"Couldn't request irq usb-plugin\n");
 
 
-	irq = of_irq_get_byname(pdev->dev.of_node, "usbin-icl-change");
-	if (irq < 0) {
-		return dev_err_probe(chip->dev, irq,
+	irq[2] = of_irq_get_byname(pdev->dev.of_node, "usbin-icl-change");
+	if (irq[2] < 0) {
+		return dev_err_probe(chip->dev, irq[2],
 				     "Couldn't get irq usbin-icl-change byname\n");
 	}
 
-	rc = devm_request_threaded_irq(chip->dev, irq, NULL,
-				       smb2_handle_usb_icl_change, IRQF_ONESHOT,
+	rc = devm_request_threaded_irq(chip->dev, irq[2], NULL,
+				       smb2_handle_usb_icl_change, IRQF_ONESHOT | IRQF_NO_AUTOEN,
 				       "usbin-icl-change", chip);
 	if (rc < 0)
-		return dev_err_probe(chip->dev, irq,
+		return dev_err_probe(chip->dev, irq[2],
 			"Couldn't request irq usbin-icl-change\n");
 
-	irq = of_irq_get_byname(pdev->dev.of_node, "wdog-bark");
-	if (irq < 0) {
-		return dev_err_probe(chip->dev, irq,
+	irq[3] = of_irq_get_byname(pdev->dev.of_node, "wdog-bark");
+	if (irq[3] < 0) {
+		return dev_err_probe(chip->dev, irq[3],
 				     "Couldn't get irq wdog-bark byname\n");
 	}
 
-	rc = devm_request_threaded_irq(chip->dev, irq, NULL,
-				       smb2_handle_wdog_bark, IRQF_ONESHOT,
+	rc = devm_request_threaded_irq(chip->dev, irq[3], NULL,
+				       smb2_handle_wdog_bark, IRQF_ONESHOT | IRQF_NO_AUTOEN,
 				       "wdog-bark", chip);
 	if (rc < 0)
-		return dev_err_probe(chip->dev, irq,
+		return dev_err_probe(chip->dev, irq[3],
 			"Couldn't request irq wdog-bark\n");
 
 	chip->usb_in_v_chan = devm_iio_channel_get(chip->dev, "usbin_v");
@@ -1044,6 +1047,9 @@ static int smb2_probe(struct platform_device *pdev)
 		return dev_err_probe(chip->dev, rc, "Couldn't set vbat max\n");
 
 	platform_set_drvdata(pdev, chip);
+
+	for(rc = 0; rc < N_IRQS; rc++)
+		enable_irq(irq[rc]);
 
 	/* Initialise charger state */
 	schedule_delayed_work(&chip->status_change_work,
