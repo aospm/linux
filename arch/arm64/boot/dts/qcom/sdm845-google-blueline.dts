@@ -125,6 +125,47 @@
 
 		vin-supply = <&vph_pwr>;
 	};
+
+	/*
+	 * GPI_DMA on qup2 seems to be broken, so use i2c-gpio
+	 * for the touchscreen for now
+	 */
+	ts-i2c-gpio {
+		compatible = "i2c-gpio";
+		status = "okay";
+		sda-gpios = <&tlmm 27 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&tlmm 28 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		// 5us ~= 100kHz
+		// 2us ~= 250kHz
+		// RIP one CPU core
+		i2c-gpio,delay-us = <1>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&touchscreen_i2c_pins>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		touchscreen@49 {
+			compatible = "st,fts";
+			reg = <0x49>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&touchscreen_pins &touchscreen_reset>;
+			interrupt-parent = <&tlmm>;
+			interrupts = <125 IRQ_TYPE_LEVEL_LOW>;
+			avdd-supply = <&vreg_l14a_1p88>;
+			vdd-supply = <&vreg_l19a_3p3>;
+			// touchscreen-size-x = <1080>;
+			// touchscreen-size-y = <2160>;
+
+			st,irq-gpio = <&tlmm 125 0>;
+			st,reset-gpio = <&tlmm 99 0>;
+			st,switch_gpio = <&tlmm 136 0>;
+			st,max-coords = <1079 2159>;
+			st,regulator_dvdd = "vdd";
+			st,regulator_avdd = "avdd";
+		};
+	};
 };
 
 &adsp_pas {
@@ -392,6 +433,39 @@
 	zap-shader {
 		memory-region = <&gpu_mem>;
 		firmware-name = "qcom/sdm845/pixel3/a630_zap.mbn";
+	};
+};
+
+/*
+ * For some reason the touchscreen doesn't work properly
+ * with the proper i2c controller, leave it disabled for now
+ */
+&i2c2 {
+	status = "disabled";
+	#dma-cells = <3>;
+
+	dmas =  <&gpi_dma0 0 2 QCOM_GPI_I2C>,
+		<&gpi_dma0 1 2 QCOM_GPI_I2C>;
+	dma-names = "tx", "rx";
+
+	touchscreen@49 {
+		compatible = "st,fts";
+		reg = <0x49>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&touchscreen_pins &touchscreen_reset>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <125 IRQ_TYPE_LEVEL_LOW>;
+		avdd-supply = <&vreg_l14a_1p88>;
+		vdd-supply = <&vreg_l19a_3p3>;
+		// touchscreen-size-x = <1080>;
+		// touchscreen-size-y = <2160>;
+
+		st,irq-gpio = <&tlmm 125 0>;
+		st,reset-gpio = <&tlmm 99 0>;
+		st,switch_gpio = <&tlmm 136 0>;
+		st,max-coords = <1079 2159>;
+		st,regulator_dvdd = "vdd";
+		st,regulator_avdd = "avdd";
 	};
 };
 
