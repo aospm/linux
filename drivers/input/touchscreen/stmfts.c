@@ -525,7 +525,7 @@ static struct attribute_group stmfts_attribute_group = {
 static int stmfts_power_on(struct stmfts_data *sdata)
 {
 	int err;
-	u8 reg[8];
+	//u8 reg[8];
 
 	err = regulator_bulk_enable(ARRAY_SIZE(sdata->regulators),
 				    sdata->regulators);

@@ -1,4 +1,5 @@
 # FTM5 support
+ccflags-y := -Wno-error=vla -Wno-error=unused-variable -Wno-error=unused-variable -Wno-error=implicit-fallthrough= -Wno-error=address
 obj-$(CONFIG_TOUCHSCREEN_FTS)	+= ftm5.o
 ftm5-objs = fts.o fts_proc.o
 ftm5-objs += \
