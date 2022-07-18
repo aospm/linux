@@ -544,7 +544,6 @@ static inline int smb2_get_current_limit(struct smb2_chip *chip,
 static int smb2_set_current_limit(struct smb2_chip *chip, unsigned int val)
 {
 	unsigned char val_raw, icl_option;
-	unsigned int load_cfg;
 	int rc;
 
 	if (val > 4800000) {
