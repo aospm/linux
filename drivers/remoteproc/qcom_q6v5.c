@@ -332,7 +332,7 @@ int qcom_q6v5_init(struct qcom_q6v5 *q6v5, struct platform_device *pdev,
 	}
 
 	if (q6v5->has_sleepstate) {
-		q6v5->sleepstate = devm_qcom_smem_state_get(&pdev->dev, "sleepstate",
+		q6v5->sleepstate = devm_qcom_smem_state_get(&pdev->dev, "sleep",
 			&q6v5->sleep_bit);
 		if (IS_ERR(q6v5->sleepstate)) {
 			dev_err(&pdev->dev, "failed to acquire sleepstate\n");
