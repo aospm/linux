@@ -1023,6 +1023,11 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 		};
+
+		sleep_smp2p_out: ap-to-dsps {
+			qcom,entry-name = "sleepstate";
+			#qcom,smem-state-cells = <1>;
+		};
 	};
 
 	psci: psci {
@@ -3256,8 +3261,9 @@
 
 			memory-region = <&slpi_mem>;
 
-			qcom,smem-states = <&slpi_smp2p_out 0>;
-			qcom,smem-state-names = "stop";
+			qcom,smem-states = <&slpi_smp2p_out 0>,
+					   <&sleep_smp2p_out 12>; // hmmmm
+			qcom,smem-state-names = "stop", "sleep";
 
 			status = "disabled";
 
