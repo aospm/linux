@@ -35,6 +35,7 @@ struct adsp_data {
 	int pas_id;
 	unsigned int minidump_id;
 	bool has_aggre2_clk;
+	bool has_sleepstate;
 	bool auto_boot;
 
 	char **proxy_pd_names;
@@ -458,6 +459,7 @@ static int adsp_probe(struct platform_device *pdev)
 	adsp->minidump_id = desc->minidump_id;
 	adsp->pas_id = desc->pas_id;
 	adsp->has_aggre2_clk = desc->has_aggre2_clk;
+	adsp->q6v5.has_sleepstate = desc->has_sleepstate;
 	adsp->info_name = desc->sysmon_name;
 	platform_set_drvdata(pdev, adsp);
 
@@ -805,6 +807,7 @@ static const struct adsp_data sdm845_slpi_resource = {
 		.firmware_name = "slpi.mdt",
 		.pas_id = 12,
 		.has_aggre2_clk = false,
+		.has_sleepstate = true,
 		.auto_boot = true,
 		.proxy_pd_names = (char*[]){
 			"lcx",

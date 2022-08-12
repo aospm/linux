@@ -331,6 +331,19 @@ int qcom_q6v5_init(struct qcom_q6v5 *q6v5, struct platform_device *pdev,
 		return PTR_ERR(q6v5->state);
 	}
 
+	if (q6v5->has_sleepstate) {
+		q6v5->sleepstate = devm_qcom_smem_state_get(&pdev->dev, "sleepstate",
+			&q6v5->sleep_bit);
+		if (IS_ERR(q6v5->sleepstate)) {
+			dev_err(&pdev->dev, "failed to acquire sleepstate\n");
+			return PTR_ERR(q6v5->sleepstate);
+		}
+
+		ret = qcom_smem_state_update_bits(q6v5->sleepstate, BIT(q6v5->sleep_bit),
+			BIT(q6v5->sleep_bit));
+		dev_info(&pdev->dev, "CA:: set sleepstate bit %u, ret: %d\n", q6v5->sleep_bit, ret);
+	}
+
 	q6v5->load_state = devm_kstrdup_const(&pdev->dev, load_state, GFP_KERNEL);
 	q6v5->qmp = qmp_get(&pdev->dev);
 	if (IS_ERR(q6v5->qmp)) {

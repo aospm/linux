@@ -17,11 +17,14 @@ struct qcom_q6v5 {
 	struct rproc *rproc;
 
 	struct qcom_smem_state *state;
+	struct qcom_smem_state *sleepstate;
 	struct qmp *qmp;
 
 	struct icc_path *path;
 
 	unsigned stop_bit;
+	bool has_sleepstate;
+	unsigned sleep_bit;
 
 	int wdog_irq;
 	int fatal_irq;
