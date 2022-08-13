@@ -415,7 +415,7 @@ static enum power_supply_usb_type smb2_usb_types[] = {
 	POWER_SUPPLY_USB_TYPE_CDP,
 };
 
-int smb2_get_prop_usb_online(struct smb2_chip *chip, int *val)
+static int smb2_get_prop_usb_online(struct smb2_chip *chip, int *val)
 {
 	unsigned int stat;
 	int rc;
@@ -477,7 +477,7 @@ static int smb2_apsd_get_charger_type(struct smb2_chip *chip, int *val)
 	return 0;
 }
 
-int smb2_get_prop_status(struct smb2_chip *chip, int *val)
+static int smb2_get_prop_status(struct smb2_chip *chip, int *val)
 {
 	int usb_online_val;
 	unsigned char stat[2];
@@ -573,7 +573,7 @@ static int smb2_set_current_limit(struct smb2_chip *chip, unsigned int val)
 	return regmap_write(chip->regmap, chip->base + USBIN_CURRENT_LIMIT_CFG, val_raw);
 }
 
-void smb2_status_change_work(struct work_struct *work)
+static void smb2_status_change_work(struct work_struct *work)
 {
 	struct smb2_chip *chip =
 		container_of(work, struct smb2_chip, status_change_work.work);
@@ -618,7 +618,7 @@ void smb2_status_change_work(struct work_struct *work)
 	power_supply_changed(chip->chg_psy);
 }
 
-int smb2_get_iio_chan(struct smb2_chip *chip, struct iio_channel *chan,
+static int smb2_get_iio_chan(struct smb2_chip *chip, struct iio_channel *chan,
 		      int *val)
 {
 	int rc;
@@ -639,7 +639,7 @@ int smb2_get_iio_chan(struct smb2_chip *chip, struct iio_channel *chan,
 	return iio_read_channel_processed(chan, val);
 }
 
-int smb2_get_prop_health(struct smb2_chip *chip, int *val)
+static int smb2_get_prop_health(struct smb2_chip *chip, int *val)
 {
 	int rc;
 	unsigned int stat;
@@ -736,7 +736,7 @@ static int smb2_property_is_writable(struct power_supply *psy,
 	}
 }
 
-irqreturn_t smb2_handle_batt_overvoltage(int irq, void *data)
+static irqreturn_t smb2_handle_batt_overvoltage(int irq, void *data)
 {
 	struct smb2_chip *chip = data;
 	unsigned int status;
@@ -753,7 +753,7 @@ irqreturn_t smb2_handle_batt_overvoltage(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t smb2_handle_usb_plugin(int irq, void *data)
+static irqreturn_t smb2_handle_usb_plugin(int irq, void *data)
 {
 	struct smb2_chip *chip = data;
 
@@ -765,7 +765,7 @@ irqreturn_t smb2_handle_usb_plugin(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t smb2_handle_usb_icl_change(int irq, void *data)
+static irqreturn_t smb2_handle_usb_icl_change(int irq, void *data)
 {
 	struct smb2_chip *chip = data;
 
@@ -774,7 +774,7 @@ irqreturn_t smb2_handle_usb_icl_change(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t smb2_handle_wdog_bark(int irq, void *data)
+static irqreturn_t smb2_handle_wdog_bark(int irq, void *data)
 {
 	struct smb2_chip *chip = data;
 	int rc;
@@ -899,7 +899,7 @@ static const struct smb2_register smb2_init_seq[] = {
 	 */
 	{ .addr = FAST_CHARGE_CURRENT_CFG,
 	  .mask = FAST_CHARGE_CURRENT_SETTING_MASK,
-	  .addr = 1950000 / 25000 },
+	  .val = 1950000 / 25000 },
 };
 
 static int smb2_init_hw(struct smb2_chip *chip)
