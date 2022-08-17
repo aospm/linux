@@ -10,6 +10,9 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
+#include <dt-bindings/sound/qcom,q6afe.h>
+#include <dt-bindings/sound/qcom,q6asm.h>
+//#include <dt-bindings/sound/qcom,q6voice.h>
 #include "sdm845.dtsi"
 #include "pm8998.dtsi"
 #include "pmi8998.dtsi"
@@ -22,6 +25,7 @@
 
 	aliases {
 		display0 = &framebuffer0;
+		hsuart0 = &uart6;
 		serial0 = &uart9;
 	};
 
@@ -50,7 +54,7 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&volume_up_gpio>;
 
-		key-vol-up {
+		vol-up {
 			label = "volume_up";
 			linux,code = <KEY_VOLUMEUP>;
 			gpios = <&pm8998_gpio 6 GPIO_ACTIVE_LOW>;
@@ -470,26 +474,41 @@
 };
 
 &i2c5 {
-	status = "okay";
+	status="okay";
+	clock-frequency = <400000>;
 
-	touchscreen@38 {
-		compatible = "focaltech,fts8719";
+	touchscreen: focaltech@38 {
+		compatible = "focaltech,fts5452";
 		reg = <0x38>;
-		wakeup-source;
+
 		interrupt-parent = <&tlmm>;
-		interrupts = <125 0x2>;
-		vdd-supply = <&vreg_l28a_3p0>;
-		vcc-i2c-supply = <&vreg_l14a_1p88>;
+		interrupts = <125 IRQ_TYPE_EDGE_FALLING>;
 
-		pinctrl-names = "default", "suspend";
-		pinctrl-0 = <&ts_int_active &ts_reset_active>;
-		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+		avdd-supply = <&vreg_l28a_3p0>;
+		vddio-supply = <&vreg_l14a_1p88>;
 
-		reset-gpio = <&tlmm 99 GPIO_ACTIVE_HIGH>;
-		irq-gpio = <&tlmm 125 GPIO_TRANSITORY>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&ts_int_default &ts_reset_default>;
+		pinctrl-1 = <&ts_int_sleep &ts_reset_sleep>;
+
+		reset-gpio = <&tlmm 99 GPIO_ACTIVE_LOW>;
+
 		touchscreen-size-x = <1080>;
 		touchscreen-size-y = <2160>;
 		focaltech,max-touch-number = <5>;
+	};
+};
+
+&i2c11 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	tfa9890_codec: tfa9890@34 {
+		compatible = "nxp,tfa9890";
+		reg = <0x34>;
+		vddd-supply = <&vreg_s4a_1p8>;
+		reset-gpio = <&tlmm 7 0>;
+		#sound-dai-cells = <1>;
 	};
 };
 
@@ -498,6 +517,11 @@
 
 	memory-region = <&ipa_fw_mem>;
 	firmware-name = "qcom/sdm845/axolotl/ipa_fws.mbn";
+};
+
+&slpi_pas {
+	status = "okay";
+	firmware-name = "qcom/sdm845/axolotl/slpi.mbn";
 };
 
 &mdss {
@@ -509,8 +533,14 @@
 	firmware-name = "qcom/sdm845/axolotl/mba.mbn", "qcom/sdm845/axolotl/modem.mbn";
 };
 
+&pmi8998_fg {
+	status = "okay";
+	monitored-battery = <&battery>;
+	power-supplies = <&pmi8998_charger>;
+};
+
 &pm8998_gpio {
-	volume_up_gpio: pm8998-gpio6-state {
+	volume_up_gpio: pm8998_gpio6 {
 		pinconf {
 			pins = "gpio6";
 			function = "normal";
@@ -521,6 +551,12 @@
 	};
 };
 
+&pmi8998_haptics {
+	status = "okay";
+
+	qcom,wave-play-rate-us = <4255>;
+};
+
 &pm8998_pon {
 	volume_down_resin: resin {
 		compatible = "qcom,pm8941-resin";
@@ -529,6 +565,15 @@
 		bias-pull-up;
 		linux,code = <KEY_VOLUMEDOWN>;
 	};
+};
+
+&pmi8998_rradc {
+	status = "okay";
+};
+
+&pmi8998_charger {
+	status = "okay";
+	monitored-battery = <&battery>;
 };
 
 &pmi8998_lpg {
@@ -558,6 +603,71 @@
 	};
 };
 
+/*
+&q6cvp {
+	status = "okay";
+};
+*/
+
+/*
+&q6cvs {
+	status = "okay";
+};
+*/
+
+/*
+&q6mvm {
+	status = "okay";
+};
+*/
+
+&q6afedai {
+	qi2s@22 {
+		reg = <22>;
+		qcom,sd-lines = <0>;
+	};
+};
+
+&q6asmdai {
+	dai@0 {
+		reg = <0>;
+	};
+
+	dai@1 {
+		reg = <1>;
+	};
+
+	dai@2 {
+		reg = <2>;
+	};
+};
+
+/*
+ * Prevent garbage data on bluetooth UART lines
+ */
+&qup_uart6_default {
+        pinmux {
+                pins = "gpio45", "gpio46", "gpio47", "gpio48";
+                function = "qup6";
+        };
+
+        cts {
+                pins = "gpio45";
+                bias-pull-down;
+        };
+
+        rts-tx {
+                pins = "gpio46", "gpio47";
+                drive-strength = <2>;
+                bias-disable;
+        };
+
+        rx {
+                pins = "gpio48";
+                bias-pull-up;
+        };
+};
+
 &qup_uart9_default {
 	pinconf-rx {
 		pins = "gpio5";
@@ -578,6 +688,92 @@
 
 &qupv3_id_1 {
 	status = "okay";
+};
+
+&sound {
+	model = "SHIFT6mq";
+	compatible = "qcom,sdm845-sndcard";
+	pinctrl-0 = <&quat_mi2s_active &quat_mi2s_sd0_active>;
+	pinctrl-names = "default";
+
+	audio-routing = "RX_BIAS", "MCLK",
+			"AMIC1", "MIC BIAS1",
+			"AMIC2", "MIC BIAS2",
+			"AMIC3", "MIC BIAS3";
+
+	mm1-dai-link {
+		link-name = "MultiMedia1";
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+		};
+	};
+
+	mm2-dai-link {
+		link-name = "MultiMedia2";
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
+		};
+	};
+
+	mm3-dai-link {
+		link-name = "MultiMedia3";
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA3>;
+		};
+	};
+
+	speaker-dai-link {
+		link-name = "Speaker Playback";
+		codec {
+			sound-dai = <&tfa9890_codec 0>;
+		};
+
+		cpu {
+			sound-dai = <&q6afedai QUATERNARY_MI2S_RX>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+
+	slim-dai-link {
+		link-name = "SLIM Playback";
+		codec {
+			sound-dai = <&wcd9340 0>;
+		};
+
+		cpu {
+			sound-dai = <&q6afedai SLIMBUS_0_RX>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+
+	slimcap-dai-link {
+		link-name = "SLIM Capture";
+		codec {
+			sound-dai = <&wcd9340 1>;
+		};
+
+		cpu {
+			sound-dai = <&q6afedai SLIMBUS_0_TX>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+/*
+	voicemmode1-dai-link {
+		link-name = "VoiceMMode1";
+		cpu {
+			sound-dai = <&q6voicedai VOICEMMODE1>;
+		};
+	};
+*/
 };
 
 &tlmm {
@@ -635,7 +831,7 @@
 		};
 	};
 
-	ts_int_active: ts-int-active {
+	ts_int_default: ts-int-default {
 		mux {
 			pins = "gpio125";
 			function = "gpio";
@@ -649,7 +845,7 @@
 		};
 	};
 
-	ts_int_suspend: ts-int-suspend {
+	ts_int_sleep: ts-int-sleep {
 		mux {
 			pins = "gpio125";
 			function = "gpio";
@@ -663,7 +859,7 @@
 		};
 	};
 
-	ts_reset_active: ts-reset-active {
+	ts_reset_default: ts-reset-default {
 		mux {
 			pins = "gpio99";
 			function = "gpio";
@@ -676,7 +872,7 @@
 		};
 	};
 
-	ts_reset_suspend: ts-reset-suspend {
+	ts_reset_sleep: ts-reset-sleep {
 		mux {
 			pins = "gpio99";
 			function = "gpio";
@@ -687,6 +883,15 @@
 			drive-strength = <2>;
 			bias-pull-down;
 		};
+	};
+
+	wcd_intr_default: wcd_intr_default {
+		pins = <54>;
+		function = "gpio";
+
+		input-enable;
+		bias-pull-down;
+		drive-strength = <2>;
 	};
 };
 
@@ -695,6 +900,12 @@
 
 	bluetooth {
 		compatible = "qcom,wcn3990-bt";
+
+		/*
+		 * This path is relative to the qca/
+		 * subdir under lib/firmware.
+		 */
+		firmware-name = "axolotl/crnv21.bin";
 
 		vddio-supply = <&vreg_s4a_1p8>;
 		vddxo-supply = <&vreg_l7a_1p8>;
@@ -750,6 +961,24 @@
 &venus {
 	status = "okay";
 	firmware-name = "qcom/sdm845/axolotl/venus.mbn";
+};
+
+&wcd9340 {
+	pinctrl-0 = <&wcd_intr_default>;
+	pinctrl-names = "default";
+	clock-names = "extclk";
+	clocks = <&rpmhcc RPMH_LN_BB_CLK2>;
+	reset-gpios = <&tlmm 64 0>;
+	vdd-buck-supply = <&vreg_s4a_1p8>;
+	vdd-buck-sido-supply = <&vreg_s4a_1p8>;
+	vdd-tx-supply = <&vreg_s4a_1p8>;
+	vdd-rx-supply = <&vreg_s4a_1p8>;
+	vdd-io-supply = <&vreg_s4a_1p8>;
+
+	qcom,micbias1-microvolt = <2700000>;
+	qcom,micbias2-microvolt = <2700000>;
+	qcom,micbias3-microvolt = <2700000>;
+	qcom,micbias4-microvolt = <2700000>;
 };
 
 &wifi {
