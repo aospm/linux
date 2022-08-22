@@ -51,6 +51,8 @@
 
 #define PON_DBC_CTL			0x71
 #define  PON_DBC_DELAY_MASK		0x7
+#define  PON_DELAY_SHIFT		6
+#define  PON_GEN2_DELAY_SHIFT		14
 
 struct pm8941_data {
 	unsigned int	pull_up_bit;
@@ -173,6 +175,7 @@ static irqreturn_t pm8941_pwrkey_irq(int irq, void *_data)
 	 * corresponding press event.
 	 */
 	if (!pwrkey->last_status && !sts) {
+		return IRQ_HANDLED;
 		input_report_key(pwrkey->input, pwrkey->code, 1);
 		input_sync(pwrkey->input);
 	}
@@ -186,7 +189,7 @@ static irqreturn_t pm8941_pwrkey_irq(int irq, void *_data)
 
 static int pm8941_pwrkey_sw_debounce_init(struct pm8941_pwrkey *pwrkey)
 {
-	unsigned int val, addr, mask;
+	unsigned int val, addr, mask, shift;
 	int error;
 
 	if (pwrkey->data->has_pon_pbs && !pwrkey->pon_pbs_baseaddr) {
@@ -203,15 +206,18 @@ static int pm8941_pwrkey_sw_debounce_init(struct pm8941_pwrkey *pwrkey)
 	if (error)
 		return error;
 
-	if (pwrkey->subtype >= PON_SUBTYPE_GEN2_PRIMARY)
+	if (pwrkey->subtype >= PON_SUBTYPE_GEN2_PRIMARY) {
 		mask = 0xf;
-	else
+		shift = PON_GEN2_DELAY_SHIFT;
+	} else {
 		mask = 0x7;
+		shift = PON_DELAY_SHIFT;
+	}
 
 	pwrkey->sw_debounce_time_us =
-		2 * USEC_PER_SEC / (1 << (mask - (val & mask)));
+		2 * USEC_PER_SEC / (1 << (shift - (val & mask)));
 
-	dev_dbg(pwrkey->dev, "SW debounce time = %u us\n",
+	dev_info(pwrkey->dev, "SW debounce time = %u us\n",
 		pwrkey->sw_debounce_time_us);
 
 	return 0;
@@ -336,8 +342,16 @@ static int pm8941_pwrkey_probe(struct platform_device *pdev)
 	pwrkey->input->phys = pwrkey->data->phys;
 
 	if (pwrkey->data->supports_debounce_config) {
-		req_delay = (req_delay << 6) / USEC_PER_SEC;
+		if (pwrkey->subtype >= PON_SUBTYPE_GEN2_PRIMARY)
+			req_delay = (req_delay << PON_GEN2_DELAY_SHIFT)
+				/ USEC_PER_SEC;
+		else
+			req_delay = (req_delay << PON_DELAY_SHIFT)
+				/ USEC_PER_SEC;
+
 		req_delay = ilog2(req_delay);
+
+		dev_info(pwrkey->dev, "Writing delay val: 0x%02x\n", (uint8_t)req_delay);
 
 		error = regmap_update_bits(pwrkey->regmap,
 					   pwrkey->baseaddr + PON_DBC_CTL,

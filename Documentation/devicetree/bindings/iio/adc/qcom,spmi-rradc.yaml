@@ -10,10 +10,17 @@ maintainers:
   - Caleb Connolly <caleb.connolly@linaro.org>
 
 description: |
+<<<<<<< HEAD
   The Qualcomm SPMI Round Robin ADC (RRADC) provides interface to clients to read the
   voltage, current and temperature for supported peripherals such as the battery thermistor
   die temperature, charger temperature, USB and DC input voltage / current and battery ID
   resistor.
+=======
+  The Qualcomm SPMI Round Robin ADC (RRADC) provides interface to clients to
+  read the voltage, current and temperature for supported peripherals such as
+  the battery thermistor die temperature, charger temperature, USB and DC input
+  voltage / current and battery ID resistor.
+>>>>>>> v6.0-rc2
 
 properties:
   compatible:
@@ -22,12 +29,19 @@ properties:
       - qcom,pm660-rradc
 
   reg:
+<<<<<<< HEAD
     description: rradc base address and length in the SPMI PMIC register map
     maxItems: 1
 
   qcom,batt-id-delay-ms:
     description:
       Sets the hardware settling time for the battery ID resistor.
+=======
+    maxItems: 1
+
+  qcom,batt-id-delay-ms:
+    description: Sets the hardware settling time for the battery ID resistor.
+>>>>>>> v6.0-rc2
     enum: [0, 1, 4, 12, 20, 40, 60, 80]
 
   "#io-channel-cells":
@@ -51,4 +65,7 @@ examples:
           #io-channel-cells  = <1>;
       };
     };
+<<<<<<< HEAD
 ...
+=======
+>>>>>>> v6.0-rc2
