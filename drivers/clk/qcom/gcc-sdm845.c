@@ -3624,7 +3624,6 @@ static struct platform_driver gcc_sdm845_driver = {
 	.driver		= {
 		.name	= "gcc-sdm845",
 		.of_match_table = gcc_sdm845_match_table,
-		.sync_state = clk_sync_state,
 	},
 };
 
