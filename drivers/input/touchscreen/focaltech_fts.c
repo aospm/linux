@@ -161,7 +161,9 @@ static void fts_report_touch(struct fts_ts_data *data)
 			touchscreen_report_pos(data->input_dev, &data->prop, x, y, true);
 			input_report_abs(input_dev, ABS_MT_PRESSURE, z);
 			input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR, maj);
+			input_report_key(data->input_dev, BTN_TOUCH, 1);
 		} else {
+			input_report_key(data->input_dev, BTN_TOUCH, 0);
 			input_mt_report_slot_inactive(input_dev);
 		}
 	}
