@@ -23,11 +23,8 @@
 
 #define PMIC_TYPE_VALUE		0x51
 
-<<<<<<< HEAD
-=======
 #define PMIC_REV4_V2		0x02
 
->>>>>>> v6.0-rc2
 struct qcom_spmi_dev {
 	int num_usids;
 	struct qcom_spmi_pmic pmic;
@@ -68,21 +65,12 @@ static const struct of_device_id pmic_spmi_id_table[] = {
 	{ }
 };
 
-<<<<<<< HEAD
-#undef N_USIDS
-
-=======
->>>>>>> v6.0-rc2
 /*
  * A PMIC can be represented by multiple SPMI devices, but
  * only the base PMIC device will contain a reference to
  * the revision information.
  *
-<<<<<<< HEAD
- * This function takes a pointer to a function device and
-=======
  * This function takes a pointer to a pmic device and
->>>>>>> v6.0-rc2
  * returns a pointer to the base PMIC device.
  *
  * This only supports PMICs with 1 or 2 USIDs.
@@ -96,19 +84,8 @@ static struct spmi_device *qcom_pmic_get_base_usid(struct device *dev)
 	int function_parent_usid, ret;
 	u32 pmic_addr;
 
-<<<<<<< HEAD
-	if (!of_match_device(pmic_spmi_id_table, dev))
-		return ERR_PTR(-EINVAL);
-
-	sdev = to_spmi_device(dev);
-	ctx = spmi_device_get_drvdata(sdev);
-
-	dev_info(dev, "CA: num_usids=%d, subtype=0x%x\n", ctx->num_usids,
-							ctx->pmic.subtype);
-=======
 	sdev = to_spmi_device(dev);
 	ctx = dev_get_drvdata(&sdev->dev);
->>>>>>> v6.0-rc2
 
 	/*
 	 * Quick return if the function device is already in the base
@@ -118,49 +95,17 @@ static struct spmi_device *qcom_pmic_get_base_usid(struct device *dev)
 		return sdev;
 
 	function_parent_usid = sdev->usid;
-<<<<<<< HEAD
-	dev_info(dev, "CA: function_parent_usid=%d\n", function_parent_usid);
-=======
->>>>>>> v6.0-rc2
 
 	/*
 	 * Walk through the list of PMICs until we find the sibling USID.
 	 * The goal is to find the first USID which is less than the
-<<<<<<< HEAD
-	 * number of USIDs in the PMIC away, e.g. for a PMIC with 2 USIDs
-=======
 	 * number of USIDs in the PMIC array, e.g. for a PMIC with 2 USIDs
->>>>>>> v6.0-rc2
 	 * where the function device is under USID 3, we want to find the
 	 * device for USID 2.
 	 */
 	spmi_bus = of_get_parent(sdev->dev.of_node);
 	do {
 		other_usid = of_get_next_child(spmi_bus, other_usid);
-<<<<<<< HEAD
-		ret = of_property_read_u32_index(other_usid, "reg", 0, &pmic_addr);
-		dev_info(dev, "CA: other_usid=%s, pmic_addr=0x%x, ret=%d\n",
-							other_usid->name, pmic_addr, ret);
-		if (ret)
-			return ERR_PTR(ret);
-		sdev = spmi_device_from_of(other_usid);
-		if (sdev == NULL) {
-			dev_info(dev, "CA: sdev null");
-			/*
-			 * If the base USID for this PMIC hasn't probed yet
-			 * but the secondary USID has, then we need to defer
-			 * the function driver so that it will attempt to
-			 * probe again when the base USID is ready.
-			 */
-			if (pmic_addr == function_parent_usid  - (ctx->num_usids - 1))
-				return ERR_PTR(-EPROBE_DEFER);
-
-			continue;
-		}
-
-		if (pmic_addr == function_parent_usid  - (ctx->num_usids - 1))
-			return sdev;
-=======
 
 		ret = of_property_read_u32_index(other_usid, "reg", 0, &pmic_addr);
 		if (ret)
@@ -178,21 +123,11 @@ static struct spmi_device *qcom_pmic_get_base_usid(struct device *dev)
 				return ERR_PTR(-EPROBE_DEFER);
 			return sdev;
 		}
->>>>>>> v6.0-rc2
 	} while (other_usid->sibling);
 
 	return ERR_PTR(-ENODATA);
 }
 
-<<<<<<< HEAD
-static inline void pmic_print_info(struct device *dev, struct qcom_spmi_pmic *pmic)
-{
-	dev_dbg(dev, "%x: %s v%d.%d\n",
-		pmic->subtype, pmic->name, pmic->major, pmic->minor);
-}
-
-=======
->>>>>>> v6.0-rc2
 static int pmic_spmi_load_revid(struct regmap *map, struct device *dev,
 				 struct qcom_spmi_pmic *pmic)
 {
@@ -236,22 +171,14 @@ static int pmic_spmi_load_revid(struct regmap *map, struct device *dev,
 	 * version of PM8941 or PM8226.
 	 */
 	if ((pmic->subtype == PM8941_SUBTYPE || pmic->subtype == PM8226_SUBTYPE) &&
-<<<<<<< HEAD
-	    pmic->major < 0x02)
-=======
 	    pmic->major < PMIC_REV4_V2)
->>>>>>> v6.0-rc2
 		pmic->major++;
 
 	if (pmic->subtype == PM8110_SUBTYPE)
 		pmic->minor = pmic->rev2;
 
-<<<<<<< HEAD
-	pmic_print_info(dev, pmic);
-=======
 	dev_dbg(dev, "%x: %s v%d.%d\n",
 		pmic->subtype, pmic->name, pmic->major, pmic->minor);
->>>>>>> v6.0-rc2
 
 	return 0;
 }
@@ -259,14 +186,6 @@ static int pmic_spmi_load_revid(struct regmap *map, struct device *dev,
 /**
  * qcom_pmic_get() - Get a pointer to the base PMIC device
  *
-<<<<<<< HEAD
- * @dev: the pmic function device
- * @return: the struct qcom_spmi_pmic* pointer associated with the function device
- */
-inline const struct qcom_spmi_pmic *qcom_pmic_get(struct device *dev)
-{
-	struct spmi_device *sdev = qcom_pmic_get_base_usid(dev->parent);
-=======
  * This function takes a struct device for a driver which is a child of a PMIC.
  * And locates the PMIC revision information for it.
  *
@@ -285,18 +204,13 @@ const struct qcom_spmi_pmic *qcom_pmic_get(struct device *dev)
 		return ERR_PTR(-EINVAL);
 
 	sdev = qcom_pmic_get_base_usid(dev->parent);
->>>>>>> v6.0-rc2
 
 	if (IS_ERR(sdev))
 		return ERR_CAST(sdev);
 
-<<<<<<< HEAD
-	return &((struct qcom_spmi_dev *)spmi_device_get_drvdata(sdev))->pmic;
-=======
 	spmi = dev_get_drvdata(&sdev->dev);
 
 	return &spmi->pmic;
->>>>>>> v6.0-rc2
 }
 EXPORT_SYMBOL(qcom_pmic_get);
 
@@ -321,11 +235,7 @@ static int pmic_spmi_probe(struct spmi_device *sdev)
 	if (!ctx)
 		return -ENOMEM;
 
-<<<<<<< HEAD
-	ctx->num_usids = (long)of_device_get_match_data(&sdev->dev);
-=======
 	ctx->num_usids = (uintptr_t)of_device_get_match_data(&sdev->dev);
->>>>>>> v6.0-rc2
 
 	/* Only the first slave id for a PMIC contains this information */
 	if (sdev->usid % ctx->num_usids == 0) {

@@ -34,11 +34,8 @@
 #include <linux/rseq.h>
 #include <linux/seqlock.h>
 #include <linux/kcsan.h>
-<<<<<<< HEAD
 #include <linux/android_vendor.h>
-=======
 #include <linux/rv.h>
->>>>>>> v6.0-rc2
 #include <asm/kmap_size.h>
 
 /* task_struct member predeclarations (sorted alphabetically): */

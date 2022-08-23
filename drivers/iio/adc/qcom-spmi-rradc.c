@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
-<<<<<<< HEAD
-=======
  * Copyright (c) 2016-2017, 2019, The Linux Foundation. All rights reserved.
->>>>>>> v6.0-rc2
  * Copyright (c) 2022 Linaro Limited.
  *  Author: Caleb Connolly <caleb.connolly@linaro.org>
  *
@@ -17,10 +14,7 @@
 #include <linux/module.h>
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
-<<<<<<< HEAD
-=======
 #include <linux/property.h>
->>>>>>> v6.0-rc2
 #include <linux/regmap.h>
 #include <linux/spmi.h>
 #include <linux/types.h>
@@ -301,11 +295,7 @@ static int rradc_read(struct rradc_chip *chip, u16 addr, __le16 *buf, int len)
 	}
 
 	if (retry_cnt == RR_ADC_COHERENT_CHECK_RETRY)
-<<<<<<< HEAD
-		dev_err(chip->dev, "Retry exceeded for coherrency check\n");
-=======
 		dev_err(chip->dev, "Retry exceeded for coherency check\n");
->>>>>>> v6.0-rc2
 
 	return ret;
 }
@@ -925,11 +915,7 @@ static const struct iio_chan_spec rradc_iio_chans[RR_ADC_CHAN_MAX] = {
 		.indexed = 1,
 	}, {
 		.type = IIO_VOLTAGE,
-<<<<<<< HEAD
-		.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) |
-=======
 		.info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED) |
->>>>>>> v6.0-rc2
 				      BIT(IIO_CHAN_INFO_SCALE),
 		.address = RR_ADC_GPIO,
 		.channel = 2,
@@ -1033,8 +1019,4 @@ module_platform_driver(rradc_driver);
 
 MODULE_DESCRIPTION("QCOM SPMI PMIC RR ADC driver");
 MODULE_AUTHOR("Caleb Connolly <caleb.connolly@linaro.org>");
-<<<<<<< HEAD
-MODULE_LICENSE("GPL v2");
-=======
 MODULE_LICENSE("GPL");
->>>>>>> v6.0-rc2

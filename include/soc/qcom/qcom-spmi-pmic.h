@@ -1,21 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-<<<<<<< HEAD
-/* Copyright (c) 2021 Linaro. All rights reserved.
- * Copyright (c) 2021 Caleb Connolly <caleb.connolly@linaro.org>
-=======
 /* Copyright (c) 2022 Linaro. All rights reserved.
  * Author: Caleb Connolly <caleb.connolly@linaro.org>
->>>>>>> v6.0-rc2
  */
 
 #ifndef __QCOM_SPMI_PMIC_H__
 #define __QCOM_SPMI_PMIC_H__
 
-<<<<<<< HEAD
-=======
 #include <linux/device.h>
 
->>>>>>> v6.0-rc2
 #define COMMON_SUBTYPE		0x00
 #define PM8941_SUBTYPE		0x01
 #define PM8841_SUBTYPE		0x02
@@ -64,12 +56,6 @@ struct qcom_spmi_pmic {
 	const char *name;
 };
 
-<<<<<<< HEAD
-struct device;
-
-inline const struct qcom_spmi_pmic *qcom_pmic_get(struct device *dev);
-=======
 const struct qcom_spmi_pmic *qcom_pmic_get(struct device *dev);
->>>>>>> v6.0-rc2
 
 #endif /* __QCOM_SPMI_PMIC_H__ */

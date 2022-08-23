@@ -577,30 +577,6 @@ enum ufshcd_quirks {
 	 * support physical host configuration.
 	 */
 	UFSHCD_QUIRK_SKIP_PH_CONFIGURATION		= 1 << 16,
-<<<<<<< HEAD
-	/*
-	 * This quirk needs to be enabled if the host controller supports inline
-	 * encryption, but it needs to initialize the crypto capabilities in a
-	 * nonstandard way and/or it needs to override blk_crypto_ll_ops.  If
-	 * enabled, the standard code won't initialize the blk_crypto_profile;
-	 * ufs_hba_variant_ops::init() must do it instead.
-	 */
-	UFSHCD_QUIRK_CUSTOM_CRYPTO_PROFILE		= 1 << 20,
-
-	/*
-	 * This quirk needs to be enabled if the host controller supports inline
-	 * encryption, but the CRYPTO_GENERAL_ENABLE bit is not implemented and
-	 * breaks the HCE sequence if used.
-	 */
-	UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE		= 1 << 21,
-
-	/*
-	 * This quirk needs to be enabled if the host controller requires that
-	 * the PRDT be cleared after each encrypted request because encryption
-	 * keys were stored in it.
-	 */
-	UFSHCD_QUIRK_KEYS_IN_PRDT			= 1 << 22,
-=======
 
 	/*
 	 * This quirk needs to be enabled if the host controller has
@@ -613,7 +589,6 @@ enum ufshcd_quirks {
 	 * auto-hibernate capability but it's FASTAUTO only.
 	 */
 	UFSHCD_QUIRK_HIBERN_FASTAUTO			= 1 << 18,
->>>>>>> v6.0-rc2
 };
 
 enum ufshcd_caps {

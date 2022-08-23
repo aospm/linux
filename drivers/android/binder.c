@@ -2933,16 +2933,11 @@ static int binder_proc_transaction(struct binder_transaction *t,
 		thread = binder_select_thread_ilocked(proc);
 
 	if (thread) {
-<<<<<<< HEAD
 		binder_transaction_priority(thread, t, node);
-=======
->>>>>>> v6.0-rc2
 		binder_enqueue_thread_work_ilocked(thread, &t->work);
 	} else if (!pending_async) {
 		binder_enqueue_work_ilocked(&t->work, &proc->todo);
 	} else {
-<<<<<<< HEAD
-=======
 		if ((t->flags & TF_UPDATE_TXN) && proc->is_frozen) {
 			t_outdated = binder_find_outdated_transaction_ilocked(t,
 									      &node->async_todo);
@@ -2954,7 +2949,6 @@ static int binder_proc_transaction(struct binder_transaction *t,
 				proc->outstanding_txns--;
 			}
 		}
->>>>>>> v6.0-rc2
 		binder_enqueue_work_ilocked(&t->work, &node->async_todo);
 	}
 
